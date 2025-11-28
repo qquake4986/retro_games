@@ -23,12 +23,12 @@
                 <p id="game-status">탱크를 움직여 충돌하세요!</p>
             </div>
             <div class="player-info">
-                <h3>AI (빨강)</h3>
+                <h3>플레이어 2 (빨강)</h3>
                 <div class="health-bar">
                     <div class="health" id="player2-health" style="width: 100%"></div>
                 </div>
                 <p>체력: <span id="player2-hp">100</span></p>
-                <p>🤖 자동 조작</p>
+                <p>조작: ↑/←/↓/→</p>
             </div>
         </div>
 
@@ -50,13 +50,13 @@
                     </div>
                     <div class="vs">VS</div>
                     <div class="player-choice">
-                        <h3>AI 🤖</h3>
-                        <div class="rps-buttons" style="opacity: 0.5; pointer-events: none;">
+                        <h3>플레이어 2</h3>
+                        <div class="rps-buttons">
                             <button class="rps-btn" data-player="2" data-choice="rock">✊ 바위</button>
                             <button class="rps-btn" data-player="2" data-choice="paper">✋ 보</button>
                             <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
                         </div>
-                        <p id="p2-choice" class="choice-display">AI 선택 중...</p>
+                        <p id="p2-choice" class="choice-display">선택 대기...</p>
                     </div>
                 </div>
                 <div id="rps-result" class="rps-result"></div>
@@ -74,13 +74,13 @@
         <div class="instructions">
             <h3>📖 게임 방법</h3>
             <ul>
-                <li>W/A/S/D 키로 탱크를 조작하여 AI와 충돌하세요</li>
+                <li>각 플레이어는 탱크를 조작하여 상대와 충돌합니다</li>
+                <li>플레이어 1: W/A/S/D 키 | 플레이어 2: 방향키(↑/←/↓/→)</li>
                 <li>충돌 시 가위바위보 대결이 시작됩니다</li>
-                <li>AI는 자동으로 당신을 추적하며 랜덤하게 가위바위보를 선택합니다</li>
                 <li>✊ 바위: 강한 공격 (30 데미지)</li>
                 <li>✋ 보: 방어막 (10 데미지)</li>
                 <li>✌️ 가위: 빠른 공격 (20 데미지)</li>
-                <li>AI의 체력을 0으로 만들면 승리!</li>
+                <li>상대의 체력을 0으로 만들면 승리!</li>
             </ul>
         </div>
     </div>
