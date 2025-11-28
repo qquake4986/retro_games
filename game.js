@@ -195,6 +195,45 @@ class Tank {
     }
 }
 
+// 대포 클래스
+class Bullet {
+    constructor(x, y, angle, owner) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = 8;
+        this.radius = 5;
+        this.owner = owner; // 누가 쏜 대포인지
+        this.active = true;
+    }
+
+    update() {
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+
+        // 화면 밖으로 나가면 비활성화
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+            this.active = false;
+        }
+    }
+
+    draw() {
+        ctx.fillStyle = this.owner === 1 ? '#ff0000' : '#0000ff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    checkHit(target) {
+        const dist = Math.sqrt((this.x - (target.x + target.width/2)) ** 2 +
+                               (this.y - (target.y + target.height/2)) ** 2);
+        return dist < this.radius + target.width/2;
+    }
+}
+
 // 플레이어 생성
 const player1 = new Tank(100, canvas.height / 2 - 20, '#fa709a', {
     up: 'ArrowUp',
@@ -205,16 +244,46 @@ const player1 = new Tank(100, canvas.height / 2 - 20, '#fa709a', {
 
 const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#4facfe', {}, 2, true); // AI - 파란색
 
+// 대포 배열
+let bullets = [];
+let lastShootTime = {
+    player1: 0,
+    player2: 0
+};
+const shootCooldown = 500; // 0.5초 쿨다운
+
 // 키보드 입력
 const keys = {};
 
 document.addEventListener('keydown', (e) => {
     keys[e.key] = true;
+
+    // 스페이스바로 대포 발사
+    if (e.key === ' ' && !game.isPaused) {
+        e.preventDefault();
+        shootBullet(player1);
+    }
 });
 
 document.addEventListener('keyup', (e) => {
     keys[e.key] = false;
 });
+
+// 대포 발사 함수
+function shootBullet(tank) {
+    const currentTime = Date.now();
+    const playerKey = tank === player1 ? 'player1' : 'player2';
+
+    if (currentTime - lastShootTime[playerKey] > shootCooldown) {
+        lastShootTime[playerKey] = currentTime;
+
+        // 탱크 중앙에서 포탑 방향으로 대포 생성
+        const bulletX = tank.x + tank.width / 2;
+        const bulletY = tank.y + tank.height / 2;
+        const bullet = new Bullet(bulletX, bulletY, tank.rotation, tank.playerNum);
+        bullets.push(bullet);
+    }
+}
 
 // 충돌 감지
 function checkCollision(tank1, tank2) {
@@ -278,33 +347,28 @@ function startRPSBattle() {
         btn.classList.remove('selected');
     });
     document.getElementById('p1-choice').textContent = '선택 대기...';
-    document.getElementById('p2-choice').textContent = 'AI 선택 중...';
+    document.getElementById('p2-choice').textContent = '???';
 
     updateGameStatus('⚔️ 가위바위보 대결!');
 
-    // AI가 자동으로 선택 (1-2초 후)
-    setTimeout(() => {
-        const aiChoices = ['rock', 'paper', 'scissors'];
-        const aiChoice = aiChoices[Math.floor(Math.random() * aiChoices.length)];
-        rpsChoices.player2 = aiChoice;
-
-        const choiceEmoji = {
-            rock: '✊ 바위',
-            paper: '✋ 보',
-            scissors: '✌️ 가위'
-        };
-        document.getElementById('p2-choice').textContent = choiceEmoji[aiChoice];
-
-        // 플레이어도 선택했으면 결과 판정
-        if (rpsChoices.player1 && rpsChoices.player2) {
-            setTimeout(() => resolveRPS(), 500);
-        }
-    }, 1000 + Math.random() * 1000); // 1-2초 랜덤 딜레이
+    // AI가 자동으로 선택 (즉시, 보이지 않게)
+    const aiChoices = ['rock', 'paper', 'scissors'];
+    const aiChoice = aiChoices[Math.floor(Math.random() * aiChoices.length)];
+    rpsChoices.player2 = aiChoice;
+    // AI 선택은 표시하지 않음 (비밀로 유지)
 }
 
 function resolveRPS() {
     const p1Choice = rpsChoices.player1;
     const p2Choice = rpsChoices.player2;
+
+    // AI가 선택한 것 표시
+    const choiceEmoji = {
+        rock: '✊ 바위',
+        paper: '✋ 보',
+        scissors: '✌️ 가위'
+    };
+    document.getElementById('p2-choice').textContent = choiceEmoji[p2Choice];
 
     const damages = {
         rock: 30,      // 강한 공격
@@ -316,7 +380,7 @@ function resolveRPS() {
     let winner = 0;
 
     if (p1Choice === p2Choice) {
-        result = '무승부! 10 데미지씩!';
+        result = `무승부! AI는 ${choiceEmoji[p2Choice]}를 선택! 10 데미지씩!`;
         player1.takeDamage(10);
         player2.takeDamage(10);
         rpsResult.className = 'rps-result draw';
@@ -327,51 +391,42 @@ function resolveRPS() {
     ) {
         winner = 1;
         const damage = damages[p1Choice];
-        result = `플레이어 승리! ${damage} 데미지!`;
+        result = `플레이어 승리! AI는 ${choiceEmoji[p2Choice]}를 선택! ${damage} 데미지!`;
         player2.takeDamage(damage);
         rpsResult.className = 'rps-result win';
     } else {
         winner = 2;
         const damage = damages[p2Choice];
-        result = `AI 승리! ${damage} 데미지!`;
+        result = `AI 승리! AI는 ${choiceEmoji[p2Choice]}를 선택! ${damage} 데미지!`;
         player1.takeDamage(damage);
         rpsResult.className = 'rps-result lose';
     }
 
     rpsResult.innerHTML = result;
 
-    // 1.5초 후 모달 닫기
+    // 2초 후 모달 닫고 원래 위치로 리셋
     setTimeout(() => {
         rpsModal.classList.remove('active');
         game.isPaused = false;
         game.inBattle = false;
 
-        // 탱크를 서로 밀어내기
-        separateTanks();
+        // 탱크를 원래 시작 위치로 리셋
+        resetTanksToStart();
 
-        updateGameStatus('탱크를 움직여 충돌하세요!');
-    }, 1500);
+        updateGameStatus('스페이스바로 대포 발사!');
+    }, 2000);
 }
 
-function separateTanks() {
-    // 탱크들을 반대 방향으로 밀어냄
-    const pushDistance = 60;
+function resetTanksToStart() {
+    // 플레이어를 원래 시작 위치로 리셋
+    player1.x = 100;
+    player1.y = canvas.height / 2 - 20;
+    player1.rotation = 0;
 
-    if (player1.x < player2.x) {
-        player1.x = Math.max(0, player1.x - pushDistance);
-        player2.x = Math.min(canvas.width - player2.width, player2.x + pushDistance);
-    } else {
-        player1.x = Math.min(canvas.width - player1.width, player1.x + pushDistance);
-        player2.x = Math.max(0, player2.x - pushDistance);
-    }
-
-    if (player1.y < player2.y) {
-        player1.y = Math.max(0, player1.y - pushDistance);
-        player2.y = Math.min(canvas.height - player2.height, player2.y + pushDistance);
-    } else {
-        player1.y = Math.min(canvas.height - player1.height, player1.y + pushDistance);
-        player2.y = Math.max(0, player2.y - pushDistance);
-    }
+    // AI를 원래 시작 위치로 리셋
+    player2.x = canvas.width - 140;
+    player2.y = canvas.height / 2 - 20;
+    player2.rotation = 0;
 }
 
 // UI 업데이트
@@ -432,8 +487,8 @@ function drawBackground() {
 }
 
 // 게임 루프
-let lastCollisionTime = 0;
-const collisionCooldown = 2000; // 2초 쿨다운
+let aiShootTimer = 0;
+const aiShootInterval = 60; // 약 1초마다 발사
 
 function gameLoop() {
     if (!game.isRunning) return;
@@ -452,28 +507,56 @@ function gameLoop() {
         // AI 이동
         if (player2.isAI) {
             player2.moveAI(player1);
+
+            // AI 자동 발사
+            aiShootTimer++;
+            if (aiShootTimer > aiShootInterval) {
+                aiShootTimer = 0;
+                shootBullet(player2);
+            }
         } else {
             player2.move(keys);
         }
 
-        // 충돌 체크
-        const currentTime = Date.now();
-        if (checkCollision(player1, player2) && !game.inBattle) {
-            if (currentTime - lastCollisionTime > collisionCooldown) {
-                lastCollisionTime = currentTime;
-                startRPSBattle();
+        // 대포 업데이트
+        bullets.forEach(bullet => {
+            if (bullet.active) {
+                bullet.update();
+
+                // 대포가 탱크에 맞았는지 확인
+                if (bullet.owner === 1 && bullet.checkHit(player2)) {
+                    bullet.active = false;
+                    if (!game.inBattle) {
+                        startRPSBattle();
+                    }
+                } else if (bullet.owner === 2 && bullet.checkHit(player1)) {
+                    bullet.active = false;
+                    if (!game.inBattle) {
+                        startRPSBattle();
+                    }
+                }
             }
-        }
+        });
+
+        // 비활성화된 대포 제거
+        bullets = bullets.filter(bullet => bullet.active);
     }
 
     // 탱크 그리기
     player1.draw();
     player2.draw();
 
+    // 대포 그리기
+    bullets.forEach(bullet => {
+        if (bullet.active) {
+            bullet.draw();
+        }
+    });
+
     requestAnimationFrame(gameLoop);
 }
 
 // 게임 시작
 updateHealthDisplay();
-updateGameStatus('탱크를 움직여 충돌하세요!');
+updateGameStatus('스페이스바로 대포 발사!');
 gameLoop();
