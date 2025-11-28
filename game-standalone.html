@@ -309,24 +309,24 @@ h1 {
         <h1>🎮 RPS Tank Battle</h1>
         <div class="game-info">
             <div class="player-info">
-                <h3>플레이어 1 (파랑)</h3>
+                <h3>플레이어 (파랑)</h3>
                 <div class="health-bar">
                     <div class="health" id="player1-health" style="width: 100%"></div>
                 </div>
                 <p>체력: <span id="player1-hp">100</span></p>
-                <p>조작: W/A/S/D</p>
+                <p>조작: ↑/←/↓/→</p>
             </div>
             <div class="score-info">
                 <h2>⚔️ 전투!</h2>
                 <p id="game-status">탱크를 움직여 충돌하세요!</p>
             </div>
             <div class="player-info">
-                <h3>플레이어 2 (빨강)</h3>
+                <h3>AI (빨강)</h3>
                 <div class="health-bar">
                     <div class="health" id="player2-health" style="width: 100%"></div>
                 </div>
                 <p>체력: <span id="player2-hp">100</span></p>
-                <p>조작: ↑/←/↓/→</p>
+                <p>🤖 자동 조작</p>
             </div>
         </div>
 
@@ -337,7 +337,7 @@ h1 {
                 <h2>⚔️ 가위바위보 대결!</h2>
                 <div class="rps-container">
                     <div class="player-choice">
-                        <h3>플레이어 1</h3>
+                        <h3>플레이어</h3>
                         <div class="rps-buttons">
                             <button class="rps-btn" data-player="1" data-choice="rock">✊ 바위</button>
                             <button class="rps-btn" data-player="1" data-choice="paper">✋ 보</button>
@@ -347,13 +347,13 @@ h1 {
                     </div>
                     <div class="vs">VS</div>
                     <div class="player-choice">
-                        <h3>플레이어 2</h3>
-                        <div class="rps-buttons">
+                        <h3>AI 🤖</h3>
+                        <div class="rps-buttons" style="opacity: 0.5; pointer-events: none;">
                             <button class="rps-btn" data-player="2" data-choice="rock">✊ 바위</button>
                             <button class="rps-btn" data-player="2" data-choice="paper">✋ 보</button>
                             <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
                         </div>
-                        <p id="p2-choice" class="choice-display">선택 대기...</p>
+                        <p id="p2-choice" class="choice-display">AI 선택 중...</p>
                     </div>
                 </div>
                 <div id="rps-result" class="rps-result"></div>
@@ -370,13 +370,13 @@ h1 {
         <div class="instructions">
             <h3>📖 게임 방법</h3>
             <ul>
-                <li>각 플레이어는 탱크를 조작하여 상대와 충돌합니다</li>
-                <li>플레이어 1: W/A/S/D 키 | 플레이어 2: 방향키(↑/←/↓/→)</li>
+                <li>방향키(↑/←/↓/→)로 탱크를 조작하여 AI와 충돌하세요</li>
+                <li>AI는 자동으로 당신을 추적하며 공격합니다</li>
                 <li>충돌 시 가위바위보 대결이 시작됩니다</li>
                 <li>✊ 바위: 강한 공격 (30 데미지)</li>
                 <li>✋ 보: 방어막 (10 데미지)</li>
                 <li>✌️ 가위: 빠른 공격 (20 데미지)</li>
-                <li>상대의 체력을 0으로 만들면 승리!</li>
+                <li>AI의 체력을 0으로 만들면 승리!</li>
             </ul>
         </div>
     </div>
@@ -562,18 +562,13 @@ class Tank {
 }
 
 const player1 = new Tank(100, canvas.height / 2 - 20, '#4facfe', {
-    up: 'w',
-    down: 's',
-    left: 'a',
-    right: 'd'
-}, 1);
-
-const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {
     up: 'ArrowUp',
     down: 'ArrowDown',
     left: 'ArrowLeft',
     right: 'ArrowRight'
-}, 2, false);
+}, 1);
+
+const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {}, 2, true);
 
 const keys = {};
 
@@ -640,9 +635,26 @@ function startRPSBattle() {
         btn.classList.remove('selected');
     });
     document.getElementById('p1-choice').textContent = '선택 대기...';
-    document.getElementById('p2-choice').textContent = '선택 대기...';
+    document.getElementById('p2-choice').textContent = 'AI 선택 중...';
 
     updateGameStatus('⚔️ 가위바위보 대결!');
+
+    setTimeout(() => {
+        const aiChoices = ['rock', 'paper', 'scissors'];
+        const aiChoice = aiChoices[Math.floor(Math.random() * aiChoices.length)];
+        rpsChoices.player2 = aiChoice;
+
+        const choiceEmoji = {
+            rock: '✊ 바위',
+            paper: '✋ 보',
+            scissors: '✌️ 가위'
+        };
+        document.getElementById('p2-choice').textContent = choiceEmoji[aiChoice];
+
+        if (rpsChoices.player1 && rpsChoices.player2) {
+            setTimeout(() => resolveRPS(), 500);
+        }
+    }, 1000 + Math.random() * 1000);
 }
 
 function resolveRPS() {
@@ -670,13 +682,13 @@ function resolveRPS() {
     ) {
         winner = 1;
         const damage = damages[p1Choice];
-        result = `플레이어 1 승리! ${damage} 데미지!`;
+        result = `플레이어 승리! ${damage} 데미지!`;
         player2.takeDamage(damage);
         rpsResult.className = 'rps-result win';
     } else {
         winner = 2;
         const damage = damages[p2Choice];
-        result = `플레이어 2 승리! ${damage} 데미지!`;
+        result = `AI 승리! ${damage} 데미지!`;
         player1.takeDamage(damage);
         rpsResult.className = 'rps-result lose';
     }
@@ -725,7 +737,8 @@ function updateGameStatus(message) {
 
 function endGame(winner) {
     game.isRunning = false;
-    winnerText.textContent = `🏆 플레이어 ${winner} 승리!`;
+    const winnerName = winner === 1 ? '플레이어' : 'AI';
+    winnerText.textContent = `🏆 ${winnerName} 승리!`;
     gameoverModal.classList.add('active');
 }
 
@@ -775,7 +788,12 @@ function gameLoop() {
 
     if (!game.isPaused) {
         player1.move(keys);
-        player2.move(keys);
+
+        if (player2.isAI) {
+            player2.moveAI(player1);
+        } else {
+            player2.move(keys);
+        }
 
         const currentTime = Date.now();
         if (checkCollision(player1, player2) && !game.inBattle) {

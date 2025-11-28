@@ -197,18 +197,13 @@ class Tank {
 
 // 플레이어 생성
 const player1 = new Tank(100, canvas.height / 2 - 20, '#4facfe', {
-    up: 'w',
-    down: 's',
-    left: 'a',
-    right: 'd'
-}, 1);
-
-const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {
     up: 'ArrowUp',
     down: 'ArrowDown',
     left: 'ArrowLeft',
     right: 'ArrowRight'
-}, 2, false); // 플레이어 2
+}, 1); // 플레이어 (방향키 사용)
+
+const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {}, 2, true); // AI
 
 // 키보드 입력
 const keys = {};
@@ -283,9 +278,28 @@ function startRPSBattle() {
         btn.classList.remove('selected');
     });
     document.getElementById('p1-choice').textContent = '선택 대기...';
-    document.getElementById('p2-choice').textContent = '선택 대기...';
+    document.getElementById('p2-choice').textContent = 'AI 선택 중...';
 
     updateGameStatus('⚔️ 가위바위보 대결!');
+
+    // AI가 자동으로 선택 (1-2초 후)
+    setTimeout(() => {
+        const aiChoices = ['rock', 'paper', 'scissors'];
+        const aiChoice = aiChoices[Math.floor(Math.random() * aiChoices.length)];
+        rpsChoices.player2 = aiChoice;
+
+        const choiceEmoji = {
+            rock: '✊ 바위',
+            paper: '✋ 보',
+            scissors: '✌️ 가위'
+        };
+        document.getElementById('p2-choice').textContent = choiceEmoji[aiChoice];
+
+        // 플레이어도 선택했으면 결과 판정
+        if (rpsChoices.player1 && rpsChoices.player2) {
+            setTimeout(() => resolveRPS(), 500);
+        }
+    }, 1000 + Math.random() * 1000); // 1-2초 랜덤 딜레이
 }
 
 function resolveRPS() {
@@ -313,13 +327,13 @@ function resolveRPS() {
     ) {
         winner = 1;
         const damage = damages[p1Choice];
-        result = `플레이어 1 승리! ${damage} 데미지!`;
+        result = `플레이어 승리! ${damage} 데미지!`;
         player2.takeDamage(damage);
         rpsResult.className = 'rps-result win';
     } else {
         winner = 2;
         const damage = damages[p2Choice];
-        result = `플레이어 2 승리! ${damage} 데미지!`;
+        result = `AI 승리! ${damage} 데미지!`;
         player1.takeDamage(damage);
         rpsResult.className = 'rps-result lose';
     }
@@ -375,7 +389,8 @@ function updateGameStatus(message) {
 // 게임 오버
 function endGame(winner) {
     game.isRunning = false;
-    winnerText.textContent = `🏆 플레이어 ${winner} 승리!`;
+    const winnerName = winner === 1 ? '플레이어' : 'AI';
+    winnerText.textContent = `🏆 ${winnerName} 승리!`;
     gameoverModal.classList.add('active');
 }
 
@@ -433,7 +448,13 @@ function gameLoop() {
     if (!game.isPaused) {
         // 탱크 이동
         player1.move(keys);
-        player2.move(keys);
+
+        // AI 이동
+        if (player2.isAI) {
+            player2.moveAI(player1);
+        } else {
+            player2.move(keys);
+        }
 
         // 충돌 체크
         const currentTime = Date.now();
