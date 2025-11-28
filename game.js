@@ -11,7 +11,7 @@ const game = {
 
 // 탱크 클래스
 class Tank {
-    constructor(x, y, color, controls, playerNum) {
+    constructor(x, y, color, controls, playerNum, isAI = false) {
         this.x = x;
         this.y = y;
         this.width = 40;
@@ -24,6 +24,9 @@ class Tank {
         this.maxHp = 100;
         this.rotation = 0;
         this.isMoving = false;
+        this.isAI = isAI;
+        this.aiChangeDirectionTimer = 0;
+        this.aiDirectionChangeInterval = 60; // 프레임 단위
     }
 
     draw() {
@@ -119,6 +122,77 @@ class Tank {
             endGame(this.playerNum === 1 ? 2 : 1);
         }
     }
+
+    // AI 이동 로직
+    moveAI(target) {
+        this.aiChangeDirectionTimer++;
+
+        let dx = 0;
+        let dy = 0;
+        this.isMoving = false;
+
+        // 타겟을 향해 이동 (80% 확률) 또는 랜덤 이동 (20% 확률)
+        const shouldChase = Math.random() > 0.2;
+
+        if (shouldChase) {
+            // 플레이어를 추적
+            const distX = target.x - this.x;
+            const distY = target.y - this.y;
+
+            // 더 큰 차이가 있는 축으로 이동
+            if (Math.abs(distX) > Math.abs(distY)) {
+                if (distX > 0) {
+                    dx = this.speed;
+                    this.rotation = Math.PI / 2;
+                } else {
+                    dx = -this.speed;
+                    this.rotation = -Math.PI / 2;
+                }
+            } else {
+                if (distY > 0) {
+                    dy = this.speed;
+                    this.rotation = Math.PI;
+                } else {
+                    dy = -this.speed;
+                    this.rotation = 0;
+                }
+            }
+            this.isMoving = true;
+        } else {
+            // 가끔 랜덤하게 움직임
+            const randomDir = Math.floor(Math.random() * 4);
+            switch(randomDir) {
+                case 0: // 위
+                    dy = -this.speed;
+                    this.rotation = 0;
+                    break;
+                case 1: // 아래
+                    dy = this.speed;
+                    this.rotation = Math.PI;
+                    break;
+                case 2: // 왼쪽
+                    dx = -this.speed;
+                    this.rotation = -Math.PI / 2;
+                    break;
+                case 3: // 오른쪽
+                    dx = this.speed;
+                    this.rotation = Math.PI / 2;
+                    break;
+            }
+            this.isMoving = true;
+        }
+
+        // 경계 체크
+        const newX = this.x + dx;
+        const newY = this.y + dy;
+
+        if (newX >= 0 && newX <= canvas.width - this.width) {
+            this.x = newX;
+        }
+        if (newY >= 0 && newY <= canvas.height - this.height) {
+            this.y = newY;
+        }
+    }
 }
 
 // 플레이어 생성
@@ -129,12 +203,7 @@ const player1 = new Tank(100, canvas.height / 2 - 20, '#4facfe', {
     right: 'd'
 }, 1);
 
-const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {
-    up: 'ArrowUp',
-    down: 'ArrowDown',
-    left: 'ArrowLeft',
-    right: 'ArrowRight'
-}, 2);
+const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {}, 2, true); // AI 플레이어
 
 // 키보드 입력
 const keys = {};
@@ -209,9 +278,28 @@ function startRPSBattle() {
         btn.classList.remove('selected');
     });
     document.getElementById('p1-choice').textContent = '선택 대기...';
-    document.getElementById('p2-choice').textContent = '선택 대기...';
+    document.getElementById('p2-choice').textContent = 'AI 선택 중...';
 
     updateGameStatus('⚔️ 가위바위보 대결!');
+
+    // AI가 자동으로 선택 (1-2초 후)
+    setTimeout(() => {
+        const aiChoices = ['rock', 'paper', 'scissors'];
+        const aiChoice = aiChoices[Math.floor(Math.random() * aiChoices.length)];
+        rpsChoices.player2 = aiChoice;
+
+        const choiceEmoji = {
+            rock: '✊ 바위',
+            paper: '✋ 보',
+            scissors: '✌️ 가위'
+        };
+        document.getElementById('p2-choice').textContent = choiceEmoji[aiChoice];
+
+        // 플레이어도 선택했으면 결과 판정
+        if (rpsChoices.player1 && rpsChoices.player2) {
+            setTimeout(() => resolveRPS(), 500);
+        }
+    }, 1000 + Math.random() * 1000); // 1-2초 랜덤 딜레이
 }
 
 function resolveRPS() {
@@ -239,13 +327,13 @@ function resolveRPS() {
     ) {
         winner = 1;
         const damage = damages[p1Choice];
-        result = `플레이어 1 승리! ${damage} 데미지!`;
+        result = `플레이어 승리! ${damage} 데미지!`;
         player2.takeDamage(damage);
         rpsResult.className = 'rps-result win';
     } else {
         winner = 2;
         const damage = damages[p2Choice];
-        result = `플레이어 2 승리! ${damage} 데미지!`;
+        result = `AI 승리! ${damage} 데미지!`;
         player1.takeDamage(damage);
         rpsResult.className = 'rps-result lose';
     }
@@ -301,7 +389,8 @@ function updateGameStatus(message) {
 // 게임 오버
 function endGame(winner) {
     game.isRunning = false;
-    winnerText.textContent = `🏆 플레이어 ${winner} 승리!`;
+    const winnerName = winner === 1 ? '플레이어' : 'AI';
+    winnerText.textContent = `🏆 ${winnerName} 승리!`;
     gameoverModal.classList.add('active');
 }
 
@@ -359,7 +448,13 @@ function gameLoop() {
     if (!game.isPaused) {
         // 탱크 이동
         player1.move(keys);
-        player2.move(keys);
+
+        // AI 이동
+        if (player2.isAI) {
+            player2.moveAI(player1);
+        } else {
+            player2.move(keys);
+        }
 
         // 충돌 체크
         const currentTime = Date.now();
