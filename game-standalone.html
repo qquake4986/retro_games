@@ -82,11 +82,11 @@ h1 {
 }
 
 #player1-health {
-    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(90deg, #fa709a 0%, #fee140 100%);
 }
 
 #player2-health {
-    background: linear-gradient(90deg, #fa709a 0%, #fee140 100%);
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
 }
 
 .score-info {
@@ -309,7 +309,7 @@ h1 {
         <h1>🎮 RPS Tank Battle</h1>
         <div class="game-info">
             <div class="player-info">
-                <h3>플레이어 (파랑)</h3>
+                <h3>플레이어 (빨강)</h3>
                 <div class="health-bar">
                     <div class="health" id="player1-health" style="width: 100%"></div>
                 </div>
@@ -321,7 +321,7 @@ h1 {
                 <p id="game-status">탱크를 움직여 충돌하세요!</p>
             </div>
             <div class="player-info">
-                <h3>AI (빨강)</h3>
+                <h3>AI (파랑)</h3>
                 <div class="health-bar">
                     <div class="health" id="player2-health" style="width: 100%"></div>
                 </div>
@@ -561,14 +561,14 @@ class Tank {
     }
 }
 
-const player1 = new Tank(100, canvas.height / 2 - 20, '#4facfe', {
+const player1 = new Tank(100, canvas.height / 2 - 20, '#fa709a', {
     up: 'ArrowUp',
     down: 'ArrowDown',
     left: 'ArrowLeft',
     right: 'ArrowRight'
 }, 1);
 
-const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {}, 2, true);
+const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#4facfe', {}, 2, true);
 
 const keys = {};
 

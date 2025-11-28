@@ -196,14 +196,14 @@ class Tank {
 }
 
 // 플레이어 생성
-const player1 = new Tank(100, canvas.height / 2 - 20, '#4facfe', {
+const player1 = new Tank(100, canvas.height / 2 - 20, '#fa709a', {
     up: 'ArrowUp',
     down: 'ArrowDown',
     left: 'ArrowLeft',
     right: 'ArrowRight'
-}, 1); // 플레이어 (방향키 사용)
+}, 1); // 플레이어 (방향키 사용) - 빨간색
 
-const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {}, 2, true); // AI
+const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#4facfe', {}, 2, true); // AI - 파란색
 
 // 키보드 입력
 const keys = {};
