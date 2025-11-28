@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPS Tank Battle - 가위바위보 탱크 대전</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 RPS Tank Battle</h1>
+        <div class="game-info">
+            <div class="player-info">
+                <h3>플레이어 1 (파랑)</h3>
+                <div class="health-bar">
+                    <div class="health" id="player1-health" style="width: 100%"></div>
+                </div>
+                <p>체력: <span id="player1-hp">100</span></p>
+                <p>조작: W/A/S/D</p>
+            </div>
+            <div class="score-info">
+                <h2>⚔️ 전투!</h2>
+                <p id="game-status">탱크를 움직여 충돌하세요!</p>
+            </div>
+            <div class="player-info">
+                <h3>플레이어 2 (빨강)</h3>
+                <div class="health-bar">
+                    <div class="health" id="player2-health" style="width: 100%"></div>
+                </div>
+                <p>체력: <span id="player2-hp">100</span></p>
+                <p>조작: ↑/←/↓/→</p>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <!-- 가위바위보 모달 -->
+        <div id="rps-modal" class="modal">
+            <div class="modal-content">
+                <h2>⚔️ 가위바위보 대결!</h2>
+                <div class="rps-container">
+                    <div class="player-choice">
+                        <h3>플레이어 1</h3>
+                        <div class="rps-buttons">
+                            <button class="rps-btn" data-player="1" data-choice="rock">✊ 바위</button>
+                            <button class="rps-btn" data-player="1" data-choice="paper">✋ 보</button>
+                            <button class="rps-btn" data-player="1" data-choice="scissors">✌️ 가위</button>
+                        </div>
+                        <p id="p1-choice" class="choice-display">선택 대기...</p>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="player-choice">
+                        <h3>플레이어 2</h3>
+                        <div class="rps-buttons">
+                            <button class="rps-btn" data-player="2" data-choice="rock">✊ 바위</button>
+                            <button class="rps-btn" data-player="2" data-choice="paper">✋ 보</button>
+                            <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
+                        </div>
+                        <p id="p2-choice" class="choice-display">선택 대기...</p>
+                    </div>
+                </div>
+                <div id="rps-result" class="rps-result"></div>
+            </div>
+        </div>
+
+        <!-- 게임 오버 모달 -->
+        <div id="gameover-modal" class="modal">
+            <div class="modal-content">
+                <h2 id="winner-text">🏆 승자!</h2>
+                <button id="restart-btn" class="restart-btn">다시 시작</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 게임 방법</h3>
+            <ul>
+                <li>각 플레이어는 탱크를 조작하여 상대와 충돌합니다</li>
+                <li>충돌 시 가위바위보 대결이 시작됩니다</li>
+                <li>✊ 바위: 강한 공격 (30 데미지)</li>
+                <li>✋ 보: 방어막 (10 데미지)</li>
+                <li>✌️ 가위: 빠른 공격 (20 데미지)</li>
+                <li>상대의 체력을 0으로 만들면 승리!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
