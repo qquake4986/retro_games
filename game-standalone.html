@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPS Tank Battle - 가위바위보 탱크 대전</title>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 900px;
+    width: 100%;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.player-info {
+    flex: 1;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.player-info h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.player-info p {
+    margin: 5px 0;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.health-bar {
+    width: 100%;
+    height: 20px;
+    background: #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+    border: 2px solid #333;
+}
+
+.health {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff00 0%, #00cc00 100%);
+    transition: width 0.3s ease;
+}
+
+#player1-health {
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+}
+
+#player2-health {
+    background: linear-gradient(90deg, #fa709a 0%, #fee140 100%);
+}
+
+.score-info {
+    flex: 1;
+    text-align: center;
+}
+
+.score-info h2 {
+    color: #ff4757;
+    margin-bottom: 10px;
+}
+
+#game-status {
+    font-size: 1.1em;
+    color: #333;
+    font-weight: bold;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: 600px;
+    background: #2c3e50;
+    border-radius: 10px;
+    border: 4px solid #34495e;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    animation: fadeIn 0.3s;
+}
+
+.modal.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-content h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.rps-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.player-choice {
+    flex: 1;
+    text-align: center;
+}
+
+.player-choice h3 {
+    margin-bottom: 15px;
+    color: #555;
+}
+
+.rps-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rps-btn {
+    padding: 15px 20px;
+    font-size: 1.2em;
+    border: 3px solid #ddd;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.rps-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.rps-btn:active {
+    transform: scale(0.95);
+}
+
+.rps-btn.selected {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-color: #f5576c;
+}
+
+.vs {
+    font-size: 2em;
+    font-weight: bold;
+    color: #ff4757;
+}
+
+.choice-display {
+    margin-top: 15px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #667eea;
+    min-height: 30px;
+}
+
+.rps-result {
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    min-height: 60px;
+}
+
+.rps-result.win {
+    background: #d4edda;
+    color: #155724;
+}
+
+.rps-result.lose {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.rps-result.draw {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.restart-btn {
+    display: block;
+    margin: 20px auto 0;
+    padding: 15px 40px;
+    font-size: 1.2em;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.restart-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.instructions {
+    margin-top: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 10px;
+}
+
+.instructions h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.instructions ul {
+    list-style-position: inside;
+    color: #555;
+}
+
+.instructions li {
+    margin: 5px 0;
+    padding-left: 10px;
+}
+
+#winner-text {
+    font-size: 2.5em;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 RPS Tank Battle</h1>
+        <div class="game-info">
+            <div class="player-info">
+                <h3>플레이어 1 (파랑)</h3>
+                <div class="health-bar">
+                    <div class="health" id="player1-health" style="width: 100%"></div>
+                </div>
+                <p>체력: <span id="player1-hp">100</span></p>
+                <p>조작: W/A/S/D</p>
+            </div>
+            <div class="score-info">
+                <h2>⚔️ 전투!</h2>
+                <p id="game-status">탱크를 움직여 충돌하세요!</p>
+            </div>
+            <div class="player-info">
+                <h3>플레이어 2 (빨강)</h3>
+                <div class="health-bar">
+                    <div class="health" id="player2-health" style="width: 100%"></div>
+                </div>
+                <p>체력: <span id="player2-hp">100</span></p>
+                <p>조작: ↑/←/↓/→</p>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <div id="rps-modal" class="modal">
+            <div class="modal-content">
+                <h2>⚔️ 가위바위보 대결!</h2>
+                <div class="rps-container">
+                    <div class="player-choice">
+                        <h3>플레이어 1</h3>
+                        <div class="rps-buttons">
+                            <button class="rps-btn" data-player="1" data-choice="rock">✊ 바위</button>
+                            <button class="rps-btn" data-player="1" data-choice="paper">✋ 보</button>
+                            <button class="rps-btn" data-player="1" data-choice="scissors">✌️ 가위</button>
+                        </div>
+                        <p id="p1-choice" class="choice-display">선택 대기...</p>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="player-choice">
+                        <h3>플레이어 2</h3>
+                        <div class="rps-buttons">
+                            <button class="rps-btn" data-player="2" data-choice="rock">✊ 바위</button>
+                            <button class="rps-btn" data-player="2" data-choice="paper">✋ 보</button>
+                            <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
+                        </div>
+                        <p id="p2-choice" class="choice-display">선택 대기...</p>
+                    </div>
+                </div>
+                <div id="rps-result" class="rps-result"></div>
+            </div>
+        </div>
+
+        <div id="gameover-modal" class="modal">
+            <div class="modal-content">
+                <h2 id="winner-text">🏆 승자!</h2>
+                <button id="restart-btn" class="restart-btn">다시 시작</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 게임 방법</h3>
+            <ul>
+                <li>각 플레이어는 탱크를 조작하여 상대와 충돌합니다</li>
+                <li>충돌 시 가위바위보 대결이 시작됩니다</li>
+                <li>✊ 바위: 강한 공격 (30 데미지)</li>
+                <li>✋ 보: 방어막 (10 데미지)</li>
+                <li>✌️ 가위: 빠른 공격 (20 데미지)</li>
+                <li>상대의 체력을 0으로 만들면 승리!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const game = {
+    isRunning: true,
+    isPaused: false,
+    inBattle: false
+};
+
+class Tank {
+    constructor(x, y, color, controls, playerNum) {
+        this.x = x;
+        this.y = y;
+        this.width = 40;
+        this.height = 40;
+        this.color = color;
+        this.speed = 3;
+        this.controls = controls;
+        this.playerNum = playerNum;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.rotation = 0;
+        this.isMoving = false;
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(this.rotation);
+
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+        ctx.fillStyle = '#333';
+        ctx.fillRect(-5, -25, 10, 25);
+
+        ctx.fillStyle = '#555';
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+        this.drawHealthBar();
+    }
+
+    drawHealthBar() {
+        const barWidth = this.width;
+        const barHeight = 5;
+        const barX = this.x;
+        const barY = this.y - 10;
+
+        ctx.fillStyle = '#333';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        const hpWidth = (this.hp / this.maxHp) * barWidth;
+        ctx.fillStyle = this.hp > 50 ? '#00ff00' : this.hp > 25 ? '#ffff00' : '#ff0000';
+        ctx.fillRect(barX, barY, hpWidth, barHeight);
+    }
+
+    move(keys) {
+        let dx = 0;
+        let dy = 0;
+        this.isMoving = false;
+
+        if (keys[this.controls.up]) {
+            dy = -this.speed;
+            this.rotation = 0;
+            this.isMoving = true;
+        }
+        if (keys[this.controls.down]) {
+            dy = this.speed;
+            this.rotation = Math.PI;
+            this.isMoving = true;
+        }
+        if (keys[this.controls.left]) {
+            dx = -this.speed;
+            this.rotation = -Math.PI / 2;
+            this.isMoving = true;
+        }
+        if (keys[this.controls.right]) {
+            dx = this.speed;
+            this.rotation = Math.PI / 2;
+            this.isMoving = true;
+        }
+
+        const newX = this.x + dx;
+        const newY = this.y + dy;
+
+        if (newX >= 0 && newX <= canvas.width - this.width) {
+            this.x = newX;
+        }
+        if (newY >= 0 && newY <= canvas.height - this.height) {
+            this.y = newY;
+        }
+    }
+
+    takeDamage(damage) {
+        this.hp = Math.max(0, this.hp - damage);
+        updateHealthDisplay();
+
+        if (this.hp <= 0) {
+            endGame(this.playerNum === 1 ? 2 : 1);
+        }
+    }
+}
+
+const player1 = new Tank(100, canvas.height / 2 - 20, '#4facfe', {
+    up: 'w',
+    down: 's',
+    left: 'a',
+    right: 'd'
+}, 1);
+
+const player2 = new Tank(canvas.width - 140, canvas.height / 2 - 20, '#fa709a', {
+    up: 'ArrowUp',
+    down: 'ArrowDown',
+    left: 'ArrowLeft',
+    right: 'ArrowRight'
+}, 2);
+
+const keys = {};
+
+document.addEventListener('keydown', (e) => {
+    keys[e.key] = true;
+});
+
+document.addEventListener('keyup', (e) => {
+    keys[e.key] = false;
+});
+
+function checkCollision(tank1, tank2) {
+    return tank1.x < tank2.x + tank2.width &&
+           tank1.x + tank1.width > tank2.x &&
+           tank1.y < tank2.y + tank2.height &&
+           tank1.y + tank1.height > tank2.y;
+}
+
+const rpsModal = document.getElementById('rps-modal');
+const rpsResult = document.getElementById('rps-result');
+const gameoverModal = document.getElementById('gameover-modal');
+const winnerText = document.getElementById('winner-text');
+const restartBtn = document.getElementById('restart-btn');
+
+let rpsChoices = {
+    player1: null,
+    player2: null
+};
+
+document.querySelectorAll('.rps-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const player = btn.dataset.player;
+        const choice = btn.dataset.choice;
+
+        document.querySelectorAll(`.rps-btn[data-player="${player}"]`).forEach(b => {
+            b.classList.remove('selected');
+        });
+
+        btn.classList.add('selected');
+        rpsChoices[`player${player}`] = choice;
+
+        const choiceEmoji = {
+            rock: '✊ 바위',
+            paper: '✋ 보',
+            scissors: '✌️ 가위'
+        };
+        document.getElementById(`p${player}-choice`).textContent = choiceEmoji[choice];
+
+        if (rpsChoices.player1 && rpsChoices.player2) {
+            setTimeout(() => resolveRPS(), 500);
+        }
+    });
+});
+
+function startRPSBattle() {
+    game.isPaused = true;
+    game.inBattle = true;
+    rpsModal.classList.add('active');
+    rpsChoices = { player1: null, player2: null };
+    rpsResult.innerHTML = '';
+    rpsResult.className = 'rps-result';
+
+    document.querySelectorAll('.rps-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    document.getElementById('p1-choice').textContent = '선택 대기...';
+    document.getElementById('p2-choice').textContent = '선택 대기...';
+
+    updateGameStatus('⚔️ 가위바위보 대결!');
+}
+
+function resolveRPS() {
+    const p1Choice = rpsChoices.player1;
+    const p2Choice = rpsChoices.player2;
+
+    const damages = {
+        rock: 30,
+        scissors: 20,
+        paper: 10
+    };
+
+    let result = '';
+    let winner = 0;
+
+    if (p1Choice === p2Choice) {
+        result = '무승부! 10 데미지씩!';
+        player1.takeDamage(10);
+        player2.takeDamage(10);
+        rpsResult.className = 'rps-result draw';
+    } else if (
+        (p1Choice === 'rock' && p2Choice === 'scissors') ||
+        (p1Choice === 'scissors' && p2Choice === 'paper') ||
+        (p1Choice === 'paper' && p2Choice === 'rock')
+    ) {
+        winner = 1;
+        const damage = damages[p1Choice];
+        result = `플레이어 1 승리! ${damage} 데미지!`;
+        player2.takeDamage(damage);
+        rpsResult.className = 'rps-result win';
+    } else {
+        winner = 2;
+        const damage = damages[p2Choice];
+        result = `플레이어 2 승리! ${damage} 데미지!`;
+        player1.takeDamage(damage);
+        rpsResult.className = 'rps-result lose';
+    }
+
+    rpsResult.innerHTML = result;
+
+    setTimeout(() => {
+        rpsModal.classList.remove('active');
+        game.isPaused = false;
+        game.inBattle = false;
+        separateTanks();
+        updateGameStatus('탱크를 움직여 충돌하세요!');
+    }, 1500);
+}
+
+function separateTanks() {
+    const pushDistance = 60;
+
+    if (player1.x < player2.x) {
+        player1.x = Math.max(0, player1.x - pushDistance);
+        player2.x = Math.min(canvas.width - player2.width, player2.x + pushDistance);
+    } else {
+        player1.x = Math.min(canvas.width - player1.width, player1.x + pushDistance);
+        player2.x = Math.max(0, player2.x - pushDistance);
+    }
+
+    if (player1.y < player2.y) {
+        player1.y = Math.max(0, player1.y - pushDistance);
+        player2.y = Math.min(canvas.height - player2.height, player2.y + pushDistance);
+    } else {
+        player1.y = Math.min(canvas.height - player1.height, player1.y + pushDistance);
+        player2.y = Math.max(0, player2.y - pushDistance);
+    }
+}
+
+function updateHealthDisplay() {
+    document.getElementById('player1-hp').textContent = player1.hp;
+    document.getElementById('player2-hp').textContent = player2.hp;
+    document.getElementById('player1-health').style.width = `${(player1.hp / player1.maxHp) * 100}%`;
+    document.getElementById('player2-health').style.width = `${(player2.hp / player2.maxHp) * 100}%`;
+}
+
+function updateGameStatus(message) {
+    document.getElementById('game-status').textContent = message;
+}
+
+function endGame(winner) {
+    game.isRunning = false;
+    winnerText.textContent = `🏆 플레이어 ${winner} 승리!`;
+    gameoverModal.classList.add('active');
+}
+
+restartBtn.addEventListener('click', () => {
+    location.reload();
+});
+
+function drawBackground() {
+    ctx.strokeStyle = '#34495e';
+    ctx.lineWidth = 1;
+
+    const gridSize = 50;
+    for (let x = 0; x <= canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y <= canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+let lastCollisionTime = 0;
+const collisionCooldown = 2000;
+
+function gameLoop() {
+    if (!game.isRunning) return;
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawBackground();
+
+    if (!game.isPaused) {
+        player1.move(keys);
+        player2.move(keys);
+
+        const currentTime = Date.now();
+        if (checkCollision(player1, player2) && !game.inBattle) {
+            if (currentTime - lastCollisionTime > collisionCooldown) {
+                lastCollisionTime = currentTime;
+                startRPSBattle();
+            }
+        }
+    }
+
+    player1.draw();
+    player2.draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+updateHealthDisplay();
+updateGameStatus('탱크를 움직여 충돌하세요!');
+gameLoop();
+    </script>
+</body>
+</html>
