@@ -30,23 +30,6 @@
             overflow-x: hidden;
         }
 
-        /* Snowfall animation */
-        .snowflake {
-            position: fixed;
-            top: -10px;
-            z-index: 9999;
-            color: white;
-            font-size: 1em;
-            animation: fall linear infinite;
-            opacity: 0.8;
-        }
-
-        @keyframes fall {
-            to {
-                transform: translateY(100vh);
-            }
-        }
-
         .container {
             max-width: 1600px;
             margin: 0 auto;
@@ -484,9 +467,6 @@
     </style>
 </head>
 <body>
-    <!-- Snowfall container -->
-    <div id="snowfall"></div>
-
     <div class="container">
         <header>
             <h1>🎄 Christmas Gesture Battle 🎁</h1>
@@ -661,29 +641,6 @@
             playSound(392, 0.2);
             setTimeout(() => playSound(349.23, 0.2), 100);
             setTimeout(() => playSound(293.66, 0.3), 200);
-        }
-
-        // Initialize snowfall
-        function createSnowfall() {
-            const snowfall = document.getElementById('snowfall');
-            for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                    const snowflake = document.createElement('div');
-                    snowflake.className = 'snowflake';
-                    snowflake.textContent = '❄';
-                    snowflake.style.left = Math.random() * 100 + '%';
-                    snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
-                    snowflake.style.animationDelay = Math.random() * 5 + 's';
-                    snowflake.style.fontSize = (Math.random() * 1 + 0.5) + 'em';
-                    snowfall.appendChild(snowflake);
-
-                    // Remove and recreate snowflake after animation
-                    setTimeout(() => {
-                        snowflake.remove();
-                        createSnowfall();
-                    }, 8000);
-                }, i * 100);
-            }
         }
 
         // Initialize game boards
@@ -1121,7 +1078,6 @@
         }
 
         // Initialize game
-        createSnowfall();
         newGame();
     </script>
 </body>
