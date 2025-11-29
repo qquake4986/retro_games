@@ -596,6 +596,7 @@
         let isPlayerTurn = true;
         let soundEnabled = true;
         let currentMatchedGesture = null;
+        let aiMemory = {}; // AI remembers seen cards: { cardIndex: gestureIndex }
 
         // Audio context
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -645,18 +646,17 @@
 
         // Initialize game boards
         function initializeBoards() {
-            // Select 8 random gestures for the game
+            // Select 8 random gestures for the game (excluding starting gestures)
             const selectedGestures = [];
             const availableIndices = [...Array(15).keys()];
 
-            // Ensure starting gestures are included
-            selectedGestures.push(0, 8, 2); // Rock, Paper, Scissors
-            availableIndices.splice(availableIndices.indexOf(0), 1);
-            availableIndices.splice(availableIndices.indexOf(8), 1);
-            availableIndices.splice(availableIndices.indexOf(2), 1);
+            // Remove starting gestures (Rock, Paper, Scissors) from available pool
+            availableIndices.splice(availableIndices.indexOf(0), 1);  // Rock
+            availableIndices.splice(availableIndices.indexOf(8), 1);  // Paper
+            availableIndices.splice(availableIndices.indexOf(2), 1);  // Scissors
 
-            // Add 5 more random gestures
-            for (let i = 0; i < 5; i++) {
+            // Add 8 random gestures (not including the starting 3)
+            for (let i = 0; i < 8; i++) {
                 const randomIndex = Math.floor(Math.random() * availableIndices.length);
                 selectedGestures.push(availableIndices[randomIndex]);
                 availableIndices.splice(randomIndex, 1);
@@ -665,6 +665,9 @@
             // Create pairs and shuffle for each board
             playerBoard = shuffleArray([...selectedGestures, ...selectedGestures]);
             aiBoard = shuffleArray([...selectedGestures, ...selectedGestures]);
+
+            // Clear AI memory
+            aiMemory = {};
 
             renderBoard('playerBoard', playerBoard, true);
             renderBoard('aiBoard', aiBoard, false);
@@ -773,7 +776,7 @@
                 return;
             }
 
-            // Simple AI: random card flipping with small chance of matching
+            // AI with memory: can remember and match cards
             const availableCards = [];
             const aiCards = document.querySelectorAll('#aiBoard .memory-card');
 
@@ -790,10 +793,27 @@
                 return;
             }
 
-            // AI flips two random cards
-            const card1Index = availableCards[Math.floor(Math.random() * availableCards.length)];
-            availableCards.splice(availableCards.indexOf(card1Index), 1);
-            const card2Index = availableCards[Math.floor(Math.random() * availableCards.length)];
+            let card1Index, card2Index;
+
+            // 40% chance AI uses memory to find a match
+            if (Math.random() < 0.4) {
+                // Try to find a match from memory
+                const memoryMatch = findMemoryMatch(availableCards);
+                if (memoryMatch) {
+                    card1Index = memoryMatch.card1;
+                    card2Index = memoryMatch.card2;
+                } else {
+                    // No match in memory, pick random
+                    card1Index = availableCards[Math.floor(Math.random() * availableCards.length)];
+                    availableCards.splice(availableCards.indexOf(card1Index), 1);
+                    card2Index = availableCards[Math.floor(Math.random() * availableCards.length)];
+                }
+            } else {
+                // Pick random cards
+                card1Index = availableCards[Math.floor(Math.random() * availableCards.length)];
+                availableCards.splice(availableCards.indexOf(card1Index), 1);
+                card2Index = availableCards[Math.floor(Math.random() * availableCards.length)];
+            }
 
             const card1 = aiCards[card1Index];
             const card2 = aiCards[card2Index];
@@ -815,12 +835,20 @@
                 const gesture1 = parseInt(card1.dataset.gesture);
                 const gesture2 = parseInt(card2.dataset.gesture);
 
+                // AI remembers the cards it sees
+                aiMemory[card1Index] = gesture1;
+                aiMemory[card2Index] = gesture2;
+
                 if (gesture1 === gesture2) {
                     // AI found a match!
                     card1.classList.add('matched');
                     card2.classList.add('matched');
                     aiMatches++;
                     updateStats();
+
+                    // Remove matched cards from memory
+                    delete aiMemory[card1Index];
+                    delete aiMemory[card2Index];
 
                     if (!aiUnlocked.includes(gesture1)) {
                         aiUnlocked.push(gesture1);
@@ -848,6 +876,27 @@
                     canFlip = true;
                 }
             }, 1500);
+        }
+
+        function findMemoryMatch(availableCards) {
+            // Look through AI memory to find a matching pair
+            for (let i = 0; i < availableCards.length; i++) {
+                const card1 = availableCards[i];
+                const gesture1 = aiMemory[card1];
+
+                if (gesture1 === undefined) continue;
+
+                // Look for another card with same gesture
+                for (let j = i + 1; j < availableCards.length; j++) {
+                    const card2 = availableCards[j];
+                    const gesture2 = aiMemory[card2];
+
+                    if (gesture2 !== undefined && gesture1 === gesture2) {
+                        return { card1, card2 };
+                    }
+                }
+            }
+            return null;
         }
 
         function aiBattle() {
