@@ -315,11 +315,14 @@
         }
 
         .info-content {
-            display: none;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
         }
 
         .info-content.active {
-            display: block;
+            max-height: 5000px;
+            transition: max-height 0.8s ease-in;
         }
 
         .gesture-info {
@@ -718,9 +721,17 @@
         function toggleInfo() {
             const infoContent = document.getElementById('infoContent');
             const infoToggleIcon = document.getElementById('infoToggleIcon');
+            const infoSection = document.querySelector('.info-section');
 
             infoContent.classList.toggle('active');
             infoToggleIcon.textContent = infoContent.classList.contains('active') ? '▲' : '▼';
+
+            // Scroll to the info section when opening
+            if (infoContent.classList.contains('active')) {
+                setTimeout(() => {
+                    infoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
         }
 
         function generateGestureInfo() {
