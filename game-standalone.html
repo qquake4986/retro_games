@@ -318,7 +318,7 @@ h1 {
             </div>
             <div class="score-info">
                 <h2>⚔️ 전투!</h2>
-                <p id="game-status">탱크를 움직여 충돌하세요!</p>
+                <p id="game-status">스페이스바로 대포 발사!</p>
             </div>
             <div class="player-info">
                 <h3>AI (파랑)</h3>
@@ -339,9 +339,9 @@ h1 {
                     <div class="player-choice">
                         <h3>플레이어</h3>
                         <div class="rps-buttons">
+                            <button class="rps-btn" data-player="1" data-choice="scissors">✌️ 가위</button>
                             <button class="rps-btn" data-player="1" data-choice="rock">✊ 바위</button>
                             <button class="rps-btn" data-player="1" data-choice="paper">✋ 보</button>
-                            <button class="rps-btn" data-player="1" data-choice="scissors">✌️ 가위</button>
                         </div>
                         <p id="p1-choice" class="choice-display">선택 대기...</p>
                     </div>
@@ -349,9 +349,9 @@ h1 {
                     <div class="player-choice">
                         <h3>AI 🤖</h3>
                         <div class="rps-buttons" style="opacity: 0.5; pointer-events: none;">
+                            <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
                             <button class="rps-btn" data-player="2" data-choice="rock">✊ 바위</button>
                             <button class="rps-btn" data-player="2" data-choice="paper">✋ 보</button>
-                            <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
                         </div>
                         <p id="p2-choice" class="choice-display">AI 선택 중...</p>
                     </div>
@@ -372,27 +372,138 @@ h1 {
             <ul>
                 <li>방향키(↑/←/↓/→)로 탱크를 조작하세요</li>
                 <li>스페이스바로 대포를 발사하세요! 💥</li>
-                <li>AI는 자동으로 당신을 추적하며 대포를 발사합니다</li>
-                <li>대포가 적 탱크에 명중하면 가위바위보 대결!</li>
+                <li>맵에 있는 상자와 배럴 장애물을 활용하세요</li>
+                <li>AI는 전략적으로 움직이며 대포를 발사합니다</li>
+                <li>대포가 적 탱크에 명중하면 10 데미지 + 가위바위보 대결!</li>
                 <li>AI는 선택을 숨깁니다 - 결과를 보고 알 수 있어요</li>
-                <li>✊ 바위: 강한 공격 (30 데미지)</li>
-                <li>✋ 보: 방어막 (10 데미지)</li>
-                <li>✌️ 가위: 빠른 공격 (20 데미지)</li>
+                <li>가위바위보 결과:</li>
+                <li>&nbsp;&nbsp;• 맞춘 쪽이 이기면: 맞은 쪽 추가 10 데미지</li>
+                <li>&nbsp;&nbsp;• 비기면: 맞춘 쪽 체력 +5</li>
+                <li>&nbsp;&nbsp;• 맞은 쪽이 이기면: 추가 효과 없음</li>
                 <li>AI의 체력을 0으로 만들면 승리!</li>
             </ul>
         </div>
     </div>
 
     <script>
+// 게임 설정
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// 게임 상태
 const game = {
     isRunning: true,
     isPaused: false,
-    inBattle: false
+    inBattle: false,
+    hitBy: null // 누가 맞췄는지 추적
 };
 
+// 장애물 클래스
+class Obstacle {
+    constructor(x, y, width, height, type) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.type = type; // 'box' or 'barrel'
+    }
+
+    draw() {
+        if (this.type === 'box') {
+            // 나무 상자
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.strokeStyle = '#654321';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+            // 상자 무늬
+            ctx.strokeStyle = '#654321';
+            ctx.beginPath();
+            ctx.moveTo(this.x + 5, this.y + 5);
+            ctx.lineTo(this.x + this.width - 5, this.y + this.height - 5);
+            ctx.moveTo(this.x + this.width - 5, this.y + 5);
+            ctx.lineTo(this.x + 5, this.y + this.height - 5);
+            ctx.stroke();
+        } else {
+            // 배럴
+            ctx.fillStyle = '#696969';
+            ctx.beginPath();
+            ctx.ellipse(this.x + this.width/2, this.y + this.height/2,
+                       this.width/2, this.height/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#505050';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 배럴 링
+            ctx.strokeStyle = '#404040';
+            ctx.beginPath();
+            ctx.ellipse(this.x + this.width/2, this.y + this.height/2,
+                       this.width/3, this.height/3, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    checkCollision(obj) {
+        return obj.x < this.x + this.width &&
+               obj.x + obj.width > this.x &&
+               obj.y < this.y + this.height &&
+               obj.y + obj.height > this.y;
+    }
+
+    checkBulletCollision(bullet) {
+        const dist = Math.sqrt((bullet.x - (this.x + this.width/2)) ** 2 +
+                               (bullet.y - (this.y + this.height/2)) ** 2);
+        return dist < bullet.radius + Math.min(this.width, this.height)/2;
+    }
+}
+
+// 장애물 생성 함수
+function generateObstacles() {
+    const obstacles = [];
+    const numObstacles = 8 + Math.floor(Math.random() * 5); // 8-12개
+
+    for (let i = 0; i < numObstacles; i++) {
+        let x, y, width, height, type;
+        let attempts = 0;
+        let validPosition = false;
+
+        while (!validPosition && attempts < 50) {
+            type = Math.random() > 0.5 ? 'box' : 'barrel';
+            width = type === 'box' ? 40 : 35;
+            height = type === 'box' ? 40 : 35;
+
+            x = 100 + Math.random() * (canvas.width - 200);
+            y = 50 + Math.random() * (canvas.height - 100);
+
+            // 시작 위치와 너무 가까우면 안됨
+            const tooCloseToStart =
+                (x < 200 && y > canvas.height/2 - 100 && y < canvas.height/2 + 100) ||
+                (x > canvas.width - 200 && y > canvas.height/2 - 100 && y < canvas.height/2 + 100);
+
+            if (!tooCloseToStart) {
+                validPosition = true;
+                // 다른 장애물과 겹치지 않는지 확인
+                for (let obs of obstacles) {
+                    if (Math.abs(x - obs.x) < width + 20 && Math.abs(y - obs.y) < height + 20) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            attempts++;
+        }
+
+        if (validPosition) {
+            obstacles.push(new Obstacle(x, y, width, height, type));
+        }
+    }
+
+    return obstacles;
+}
+
+// 탱크 클래스
 class Tank {
     constructor(x, y, color, controls, playerNum, isAI = false) {
         this.x = x;
@@ -400,7 +511,7 @@ class Tank {
         this.width = 40;
         this.height = 40;
         this.color = color;
-        this.speed = 3;
+        this.speed = 1.5; // 속도 대폭 감소
         this.controls = controls;
         this.playerNum = playerNum;
         this.hp = 100;
@@ -410,6 +521,8 @@ class Tank {
         this.isAI = isAI;
         this.aiChangeDirectionTimer = 0;
         this.aiDirectionChangeInterval = 60;
+        this.aiStrategy = 'hunt'; // 'hunt', 'dodge', 'cover'
+        this.aiStrategyTimer = 0;
     }
 
     draw() {
@@ -417,23 +530,66 @@ class Tank {
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         ctx.rotate(this.rotation);
 
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        // 탱크 그림자
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(-this.width / 2 + 2, -this.height / 2 + 2, this.width, this.height);
 
+        // 탱크 트랙 (무한궤도)
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-this.width / 2 - 2, -this.height / 2, 4, this.height); // 왼쪽 트랙
+        ctx.fillRect(this.width / 2 - 2, -this.height / 2, 4, this.height); // 오른쪽 트랙
+
+        // 트랙 디테일
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1;
+        for (let i = -this.height/2; i < this.height/2; i += 5) {
+            ctx.beginPath();
+            ctx.moveTo(-this.width / 2 - 2, i);
+            ctx.lineTo(-this.width / 2 + 2, i);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(this.width / 2 - 2, i);
+            ctx.lineTo(this.width / 2 + 2, i);
+            ctx.stroke();
+        }
+
+        // 탱크 메인 바디
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2 + 3, -this.height / 2 + 5, this.width - 6, this.height - 10);
+
+        // 탱크 바디 테두리
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
-        ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        ctx.strokeRect(-this.width / 2 + 3, -this.height / 2 + 5, this.width - 6, this.height - 10);
 
+        // 탱크 포탑 (더 크고 현실적으로)
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 탱크 포신 (대포)
         ctx.fillStyle = '#333';
-        ctx.fillRect(-5, -25, 10, 25);
+        ctx.fillRect(-3, -28, 6, 28);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(-3, -28, 6, 28);
 
+        // 포탑 상단 해치
         ctx.fillStyle = '#555';
         ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
         ctx.stroke();
 
         ctx.restore();
+
+        // HP 바
         this.drawHealthBar();
     }
 
@@ -443,15 +599,17 @@ class Tank {
         const barX = this.x;
         const barY = this.y - 10;
 
+        // 배경
         ctx.fillStyle = '#333';
         ctx.fillRect(barX, barY, barWidth, barHeight);
 
+        // HP
         const hpWidth = (this.hp / this.maxHp) * barWidth;
         ctx.fillStyle = this.hp > 50 ? '#00ff00' : this.hp > 25 ? '#ffff00' : '#ff0000';
         ctx.fillRect(barX, barY, hpWidth, barHeight);
     }
 
-    move(keys) {
+    move(keys, obstacles = []) {
         let dx = 0;
         let dy = 0;
         this.isMoving = false;
@@ -477,15 +635,25 @@ class Tank {
             this.isMoving = true;
         }
 
+        // 새 위치 계산
         const newX = this.x + dx;
         const newY = this.y + dy;
 
-        if (newX >= 0 && newX <= canvas.width - this.width) {
-            this.x = newX;
+        // 경계 체크
+        if (newX < 0 || newX > canvas.width - this.width) return;
+        if (newY < 0 || newY > canvas.height - this.height) return;
+
+        // 장애물 충돌 체크
+        const tempTank = { x: newX, y: newY, width: this.width, height: this.height };
+        for (let obstacle of obstacles) {
+            if (obstacle.checkCollision(tempTank)) {
+                return; // 충돌하면 이동 취소
+            }
         }
-        if (newY >= 0 && newY <= canvas.height - this.height) {
-            this.y = newY;
-        }
+
+        // 충돌이 없으면 이동
+        this.x = newX;
+        this.y = newY;
     }
 
     takeDamage(damage) {
@@ -497,72 +665,114 @@ class Tank {
         }
     }
 
-    moveAI(target) {
+    // AI 전략적 이동 로직
+    moveAI(target, obstacles = []) {
         this.aiChangeDirectionTimer++;
+        this.aiStrategyTimer++;
+
+        // 전략 변경 (5초마다)
+        if (this.aiStrategyTimer > 300) {
+            this.aiStrategyTimer = 0;
+            const strategies = ['hunt', 'dodge', 'strafe'];
+            this.aiStrategy = strategies[Math.floor(Math.random() * strategies.length)];
+        }
 
         let dx = 0;
         let dy = 0;
         this.isMoving = false;
 
-        const shouldChase = Math.random() > 0.2;
+        const distX = target.x - this.x;
+        const distY = target.y - this.y;
+        const distance = Math.sqrt(distX * distX + distY * distY);
 
-        if (shouldChase) {
-            const distX = target.x - this.x;
-            const distY = target.y - this.y;
+        // 적을 향해 포탑 회전
+        const angleToTarget = Math.atan2(distY, distX);
 
-            if (Math.abs(distX) > Math.abs(distY)) {
-                if (distX > 0) {
-                    dx = this.speed;
-                    this.rotation = Math.PI / 2;
+        // 전략에 따른 이동
+        if (this.aiStrategy === 'hunt') {
+            // 적에게 접근하면서 조준
+            if (distance > 200) {
+                // 가까이 접근
+                if (Math.abs(distX) > Math.abs(distY)) {
+                    if (distX > 0) {
+                        dx = this.speed;
+                        this.rotation = Math.PI / 2;
+                    } else {
+                        dx = -this.speed;
+                        this.rotation = -Math.PI / 2;
+                    }
                 } else {
-                    dx = -this.speed;
-                    this.rotation = -Math.PI / 2;
+                    if (distY > 0) {
+                        dy = this.speed;
+                        this.rotation = Math.PI;
+                    } else {
+                        dy = -this.speed;
+                        this.rotation = 0;
+                    }
                 }
             } else {
-                if (distY > 0) {
-                    dy = this.speed;
-                    this.rotation = Math.PI;
-                } else {
-                    dy = -this.speed;
-                    this.rotation = 0;
-                }
+                // 적당한 거리에서 조준
+                this.rotation = angleToTarget;
+            }
+            this.isMoving = distance > 200;
+        } else if (this.aiStrategy === 'dodge') {
+            // 좌우로 회피하면서 이동
+            const perpAngle = angleToTarget + Math.PI / 2;
+            if (Math.random() > 0.5) {
+                dx = Math.cos(perpAngle) * this.speed;
+                dy = Math.sin(perpAngle) * this.speed;
+            } else {
+                dx = Math.cos(perpAngle - Math.PI) * this.speed;
+                dy = Math.sin(perpAngle - Math.PI) * this.speed;
+            }
+
+            // 이동 방향으로 회전
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.rotation = dx > 0 ? Math.PI / 2 : -Math.PI / 2;
+            } else {
+                this.rotation = dy > 0 ? Math.PI : 0;
             }
             this.isMoving = true;
-        } else {
-            const randomDir = Math.floor(Math.random() * 4);
-            switch(randomDir) {
-                case 0:
-                    dy = -this.speed;
-                    this.rotation = 0;
-                    break;
-                case 1:
-                    dy = this.speed;
-                    this.rotation = Math.PI;
-                    break;
-                case 2:
-                    dx = -this.speed;
-                    this.rotation = -Math.PI / 2;
-                    break;
-                case 3:
-                    dx = this.speed;
-                    this.rotation = Math.PI / 2;
-                    break;
+        } else if (this.aiStrategy === 'strafe') {
+            // 원을 그리며 이동
+            const circleAngle = angleToTarget + Math.PI / 2;
+            dx = Math.cos(circleAngle) * this.speed;
+            dy = Math.sin(circleAngle) * this.speed;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.rotation = dx > 0 ? Math.PI / 2 : -Math.PI / 2;
+            } else {
+                this.rotation = dy > 0 ? Math.PI : 0;
             }
             this.isMoving = true;
         }
 
+        // 새 위치 계산
         const newX = this.x + dx;
         const newY = this.y + dy;
 
-        if (newX >= 0 && newX <= canvas.width - this.width) {
-            this.x = newX;
+        // 경계 체크
+        if (newX < 0 || newX > canvas.width - this.width) return;
+        if (newY < 0 || newY > canvas.height - this.height) return;
+
+        // 장애물 충돌 체크
+        const tempTank = { x: newX, y: newY, width: this.width, height: this.height };
+        for (let obstacle of obstacles) {
+            if (obstacle.checkCollision(tempTank)) {
+                // 충돌 시 전략 변경
+                this.aiStrategy = 'dodge';
+                this.aiStrategyTimer = 0;
+                return;
+            }
         }
-        if (newY >= 0 && newY <= canvas.height - this.height) {
-            this.y = newY;
-        }
+
+        // 충돌이 없으면 이동
+        this.x = newX;
+        this.y = newY;
     }
 }
 
+// 대포 클래스
 class Bullet {
     constructor(x, y, angle, owner) {
         this.x = x;
@@ -616,18 +826,29 @@ let lastShootTime = {
 };
 const shootCooldown = 500;
 
+// 장애물 생성
+const obstacles = generateObstacles();
+
 const keys = {};
 
 document.addEventListener('keydown', (e) => {
+    // 방향키와 스페이스바 스크롤 방지
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+    }
+
     keys[e.key] = true;
 
     if (e.key === ' ' && !game.isPaused) {
-        e.preventDefault();
         shootBullet(player1);
     }
 });
 
 document.addEventListener('keyup', (e) => {
+    // 방향키 스크롤 방지
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+    }
     keys[e.key] = false;
 });
 
@@ -720,35 +941,52 @@ function resolveRPS() {
     };
     document.getElementById('p2-choice').textContent = choiceEmoji[p2Choice];
 
-    const damages = {
-        rock: 30,
-        scissors: 20,
-        paper: 10
-    };
-
     let result = '';
     let winner = 0;
 
+    // 누가 대포를 맞췄는지 확인 (1: 플레이어가 맞춤, 2: AI가 맞춤)
+    const attacker = game.hitBy;
+    const victim = attacker === 1 ? 2 : 1;
+
     if (p1Choice === p2Choice) {
-        result = `무승부! AI는 ${choiceEmoji[p2Choice]}를 선택! 10 데미지씩!`;
-        player1.takeDamage(10);
-        player2.takeDamage(10);
+        // 무승부: 맞춘 캐릭에게 체력 +5
+        result = `무승부! AI는 ${choiceEmoji[p2Choice]}를 선택! 맞춘 쪽에게 체력 +5!`;
+        if (attacker === 1) {
+            player1.hp = Math.min(player1.maxHp, player1.hp + 5);
+            result = `무승부! AI는 ${choiceEmoji[p2Choice]}를 선택! 플레이어 체력 +5!`;
+        } else {
+            player2.hp = Math.min(player2.maxHp, player2.hp + 5);
+            result = `무승부! AI는 ${choiceEmoji[p2Choice]}를 선택! AI 체력 +5!`;
+        }
+        updateHealthDisplay();
         rpsResult.className = 'rps-result draw';
     } else if (
         (p1Choice === 'rock' && p2Choice === 'scissors') ||
         (p1Choice === 'scissors' && p2Choice === 'paper') ||
         (p1Choice === 'paper' && p2Choice === 'rock')
     ) {
+        // 플레이어 승리
         winner = 1;
-        const damage = damages[p1Choice];
-        result = `플레이어 승리! AI는 ${choiceEmoji[p2Choice]}를 선택! ${damage} 데미지!`;
-        player2.takeDamage(damage);
+        if (attacker === 1) {
+            // 맞춘 캐릭(플레이어)이 이김 -> 맞은 캐릭(AI) 10 추가 데미지
+            result = `플레이어 승리! AI는 ${choiceEmoji[p2Choice]}를 선택! AI에게 10 추가 데미지!`;
+            player2.takeDamage(10);
+        } else {
+            // 맞은 캐릭(플레이어)이 이김 -> 추가 효과 없음
+            result = `플레이어 승리! AI는 ${choiceEmoji[p2Choice]}를 선택!`;
+        }
         rpsResult.className = 'rps-result win';
     } else {
+        // AI 승리
         winner = 2;
-        const damage = damages[p2Choice];
-        result = `AI 승리! AI는 ${choiceEmoji[p2Choice]}를 선택! ${damage} 데미지!`;
-        player1.takeDamage(damage);
+        if (attacker === 2) {
+            // 맞춘 캐릭(AI)이 이김 -> 맞은 캐릭(플레이어) 10 추가 데미지
+            result = `AI 승리! AI는 ${choiceEmoji[p2Choice]}를 선택! 플레이어에게 10 추가 데미지!`;
+            player1.takeDamage(10);
+        } else {
+            // 맞은 캐릭(AI)이 이김 -> 추가 효과 없음
+            result = `AI 승리! AI는 ${choiceEmoji[p2Choice]}를 선택!`;
+        }
         rpsResult.className = 'rps-result lose';
     }
 
@@ -758,6 +996,7 @@ function resolveRPS() {
         rpsModal.classList.remove('active');
         game.isPaused = false;
         game.inBattle = false;
+        game.hitBy = null;
 
         resetTanksToStart();
 
@@ -837,11 +1076,14 @@ function gameLoop() {
 
     drawBackground();
 
+    // 장애물 그리기
+    obstacles.forEach(obstacle => obstacle.draw());
+
     if (!game.isPaused) {
-        player1.move(keys);
+        player1.move(keys, obstacles);
 
         if (player2.isAI) {
-            player2.moveAI(player1);
+            player2.moveAI(player1, obstacles);
 
             aiShootTimer++;
             if (aiShootTimer > aiShootInterval) {
@@ -849,21 +1091,33 @@ function gameLoop() {
                 shootBullet(player2);
             }
         } else {
-            player2.move(keys);
+            player2.move(keys, obstacles);
         }
 
         bullets.forEach(bullet => {
             if (bullet.active) {
                 bullet.update();
 
+                // 장애물과 충돌 확인
+                for (let obstacle of obstacles) {
+                    if (obstacle.checkBulletCollision(bullet)) {
+                        bullet.active = false;
+                        break;
+                    }
+                }
+
                 if (bullet.owner === 1 && bullet.checkHit(player2)) {
                     bullet.active = false;
                     if (!game.inBattle) {
+                        player2.takeDamage(10);
+                        game.hitBy = 1;
                         startRPSBattle();
                     }
                 } else if (bullet.owner === 2 && bullet.checkHit(player1)) {
                     bullet.active = false;
                     if (!game.inBattle) {
+                        player1.takeDamage(10);
+                        game.hitBy = 2;
                         startRPSBattle();
                     }
                 }

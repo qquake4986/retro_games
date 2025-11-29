@@ -42,9 +42,9 @@
                     <div class="player-choice">
                         <h3>플레이어</h3>
                         <div class="rps-buttons">
+                            <button class="rps-btn" data-player="1" data-choice="scissors">✌️ 가위</button>
                             <button class="rps-btn" data-player="1" data-choice="rock">✊ 바위</button>
                             <button class="rps-btn" data-player="1" data-choice="paper">✋ 보</button>
-                            <button class="rps-btn" data-player="1" data-choice="scissors">✌️ 가위</button>
                         </div>
                         <p id="p1-choice" class="choice-display">선택 대기...</p>
                     </div>
@@ -52,9 +52,9 @@
                     <div class="player-choice">
                         <h3>AI 🤖</h3>
                         <div class="rps-buttons" style="opacity: 0.5; pointer-events: none;">
+                            <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
                             <button class="rps-btn" data-player="2" data-choice="rock">✊ 바위</button>
                             <button class="rps-btn" data-player="2" data-choice="paper">✋ 보</button>
-                            <button class="rps-btn" data-player="2" data-choice="scissors">✌️ 가위</button>
                         </div>
                         <p id="p2-choice" class="choice-display">AI 선택 중...</p>
                     </div>
@@ -76,12 +76,14 @@
             <ul>
                 <li>방향키(↑/←/↓/→)로 탱크를 조작하세요</li>
                 <li>스페이스바로 대포를 발사하세요! 💥</li>
-                <li>AI는 자동으로 당신을 추적하며 대포를 발사합니다</li>
-                <li>대포가 적 탱크에 명중하면 가위바위보 대결!</li>
+                <li>맵에 있는 상자와 배럴 장애물을 활용하세요</li>
+                <li>AI는 전략적으로 움직이며 대포를 발사합니다</li>
+                <li>대포가 적 탱크에 명중하면 10 데미지 + 가위바위보 대결!</li>
                 <li>AI는 선택을 숨깁니다 - 결과를 보고 알 수 있어요</li>
-                <li>✊ 바위: 강한 공격 (30 데미지)</li>
-                <li>✋ 보: 방어막 (10 데미지)</li>
-                <li>✌️ 가위: 빠른 공격 (20 데미지)</li>
+                <li>가위바위보 결과:</li>
+                <li>&nbsp;&nbsp;• 맞춘 쪽이 이기면: 맞은 쪽 추가 10 데미지</li>
+                <li>&nbsp;&nbsp;• 비기면: 맞춘 쪽 체력 +5</li>
+                <li>&nbsp;&nbsp;• 맞은 쪽이 이기면: 추가 효과 없음</li>
                 <li>AI의 체력을 0으로 만들면 승리!</li>
             </ul>
         </div>
