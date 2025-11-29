@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎄 Christmas Gesture Battle - Memory Match × RPS-15</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --christmas-red: #c41e3a;
+            --christmas-green: #165b33;
+            --christmas-gold: #ffd700;
+            --snow-white: #f8f8ff;
+            --dark-bg: #0a3d2c;
+            --card-back: linear-gradient(135deg, #c41e3a 0%, #165b33 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #0a1628 0%, #1a3a52 50%, #0a1628 100%);
+            color: var(--snow-white);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Snowfall animation */
+        .snowflake {
+            position: fixed;
+            top: -10px;
+            z-index: 9999;
+            color: white;
+            font-size: 1em;
+            animation: fall linear infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh);
+            }
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3em;
+            color: var(--christmas-gold);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+            50% { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8); }
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: var(--christmas-gold);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--christmas-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(196, 30, 58, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(196, 30, 58, 0.6);
+        }
+
+        .btn-secondary {
+            background: var(--christmas-green);
+            color: white;
+            box-shadow: 0 4px 15px rgba(22, 91, 51, 0.4);
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--christmas-gold);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--christmas-gold);
+        }
+
+        .game-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .player-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 3px solid var(--christmas-red);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .player-section.ai {
+            border-color: var(--christmas-green);
+        }
+
+        .player-section.active {
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
+            50% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.8); }
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--christmas-gold);
+        }
+
+        .memory-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .memory-card {
+            aspect-ratio: 1;
+            background: var(--card-back);
+            border: 2px solid var(--christmas-gold);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            transition: all 0.3s ease;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .memory-card:hover:not(.flipped):not(.matched) {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .memory-card.flipped {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        .memory-card.matched {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.5));
+            border-color: var(--christmas-gold);
+            cursor: default;
+            animation: match-pulse 0.5s ease-out;
+        }
+
+        @keyframes match-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .memory-card::before {
+            content: '🎁';
+            position: absolute;
+            font-size: 1.5em;
+        }
+
+        .memory-card.flipped::before,
+        .memory-card.matched::before {
+            content: '';
+        }
+
+        .unlocked-gestures {
+            margin-top: 15px;
+        }
+
+        .unlocked-title {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .gestures-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .gesture-badge {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid var(--christmas-gold);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .gesture-badge.new {
+            animation: badge-appear 0.5s ease-out;
+        }
+
+        @keyframes badge-appear {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .battle-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .battle-modal.active {
+            display: flex;
+        }
+
+        .battle-content {
+            background: linear-gradient(135deg, #1a3a52 0%, #0a1628 100%);
+            border: 4px solid var(--christmas-gold);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .battle-title {
+            font-size: 2.5em;
+            color: var(--christmas-gold);
+            margin-bottom: 30px;
+        }
+
+        .battle-choices {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+
+        .battle-choice {
+            text-align: center;
+        }
+
+        .choice-label {
+            font-size: 1em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .choice-icon {
+            font-size: 5em;
+            margin-bottom: 10px;
+        }
+
+        .choice-name {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .battle-result {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .battle-result.win {
+            color: #2ecc71;
+        }
+
+        .battle-result.lose {
+            color: #e74c3c;
+        }
+
+        .battle-result.tie {
+            color: #f39c12;
+        }
+
+        .gesture-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .gesture-select-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--christmas-gold);
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .gesture-select-btn:hover {
+            transform: scale(1.05);
+            background: rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .gesture-select-btn.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .gesture-select-icon {
+            font-size: 3em;
+            margin-bottom: 5px;
+        }
+
+        .gesture-select-name {
+            font-size: 0.8em;
+        }
+
+        .game-over-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .game-over-modal.active {
+            display: flex;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-green) 100%);
+            border: 5px solid var(--christmas-gold);
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            animation: game-over-appear 0.5s ease-out;
+        }
+
+        @keyframes game-over-appear {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .game-over-title {
+            font-size: 3em;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-over-stats {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--christmas-gold);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: var(--christmas-gold);
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1024px) {
+            .game-container {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .memory-card {
+                font-size: 1.5em;
+            }
+
+            .battle-choices {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Snowfall container -->
+    <div id="snowfall"></div>
+
+    <div class="container">
+        <header>
+            <h1>🎄 Christmas Gesture Battle 🎁</h1>
+            <p class="subtitle">Memory Match × RPS-15 Mashup!</p>
+        </header>
+
+        <div class="instructions">
+            <h3>🎮 How to Play</h3>
+            <ol>
+                <li><strong>Find Matches:</strong> Click 2 cards on YOUR board to find matching gesture pairs</li>
+                <li><strong>Unlock Gestures:</strong> Each match unlocks that gesture for battles!</li>
+                <li><strong>Battle Time:</strong> After matching, choose from your unlocked gestures to fight</li>
+                <li><strong>Strategy:</strong> AI has different unlocked gestures - plan carefully!</li>
+                <li><strong>Win:</strong> First to match all 8 pairs OR highest battle score wins!</li>
+            </ol>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="newGame()">🎅 New Game</button>
+            <button class="btn-secondary" onclick="toggleSound()">🔔 <span id="soundToggle">Sound ON</span></button>
+        </div>
+
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-label">🎄 Your Score</div>
+                <div class="stat-value" id="playerScore">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">🤖 AI Score</div>
+                <div class="stat-value" id="aiScore">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">⭐ Your Matches</div>
+                <div class="stat-value" id="playerMatches">0/8</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">🎁 AI Matches</div>
+                <div class="stat-value" id="aiMatches">0/8</div>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <!-- Player Section -->
+            <div class="player-section active" id="playerSection">
+                <div class="section-title">🎅 Your Board</div>
+                <div class="memory-board" id="playerBoard"></div>
+                <div class="unlocked-gestures">
+                    <div class="unlocked-title">Unlocked Gestures:</div>
+                    <div class="gestures-list" id="playerGestures"></div>
+                </div>
+            </div>
+
+            <!-- AI Section -->
+            <div class="player-section ai" id="aiSection">
+                <div class="section-title">🤖 AI Board</div>
+                <div class="memory-board" id="aiBoard"></div>
+                <div class="unlocked-gestures">
+                    <div class="unlocked-title">Unlocked Gestures:</div>
+                    <div class="gestures-list" id="aiGestures"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Battle Modal -->
+    <div class="battle-modal" id="battleModal">
+        <div class="battle-content">
+            <div class="battle-title" id="battlePhase">Choose Your Gesture!</div>
+            <div class="gesture-selector" id="gestureSelector"></div>
+            <div class="battle-choices" id="battleChoices" style="display: none;">
+                <div class="battle-choice">
+                    <div class="choice-label">You chose</div>
+                    <div class="choice-icon" id="playerBattleIcon"></div>
+                    <div class="choice-name" id="playerBattleName"></div>
+                </div>
+                <div class="battle-choice">
+                    <div class="choice-label">AI chose</div>
+                    <div class="choice-icon" id="aiBattleIcon"></div>
+                    <div class="choice-name" id="aiBattleName"></div>
+                </div>
+            </div>
+            <div class="battle-result" id="battleResult"></div>
+            <button class="btn-primary" id="battleContinue" style="display: none;" onclick="closeBattle()">Continue ⭐</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="game-over-modal" id="gameOverModal">
+        <div class="game-over-content">
+            <div class="game-over-title" id="gameOverTitle"></div>
+            <div class="game-over-stats" id="gameOverStats"></div>
+            <button class="btn-primary" onclick="newGame()">🎅 Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game data
+        const gestures = [
+            { name: 'Rock', icon: '🪨', verbs: ['crushes', 'crushes', 'crushes', 'crushes', 'crushes', 'crushes', 'crushes'] },
+            { name: 'Fire', icon: '🔥', verbs: ['burns', 'burns', 'burns', 'burns', 'burns', 'burns', 'melts'] },
+            { name: 'Scissors', icon: '✂️', verbs: ['cuts', 'cuts', 'cuts', 'cuts', 'cuts', 'cuts', 'cuts'] },
+            { name: 'Snake', icon: '🐍', verbs: ['bites', 'bites', 'bites', 'poisons', 'poisons', 'poisons', 'eats'] },
+            { name: 'Human', icon: '👤', verbs: ['tames', 'tames', 'tames', 'plants', 'plants', 'commands', 'uses'] },
+            { name: 'Tree', icon: '🌳', verbs: ['shelters', 'shelters', 'shelters', 'shelters', 'produces', 'produces', 'outlives'] },
+            { name: 'Wolf', icon: '🐺', verbs: ['eats', 'eats', 'eats', 'eats', 'eats', 'bites', 'chews'] },
+            { name: 'Sponge', icon: '🧽', verbs: ['absorbs', 'absorbs', 'absorbs', 'absorbs', 'cleans', 'cleans', 'absorbs'] },
+            { name: 'Paper', icon: '📄', verbs: ['fans', 'fans', 'fans', 'disproves', 'disproves', 'disproves', 'covers'] },
+            { name: 'Air', icon: '💨', verbs: ['blows away', 'blows away', 'erodes', 'erodes', 'erodes', 'chokes', 'tarnishes'] },
+            { name: 'Water', icon: '💧', verbs: ['erodes', 'erodes', 'erodes', 'drowns', 'drowns', 'drowns', 'rusts'] },
+            { name: 'Dragon', icon: '🐉', verbs: ['commands', 'commands', 'commands', 'commands', 'eats', 'breathes fire on', 'defeats'] },
+            { name: 'Devil', icon: '😈', verbs: ['eats', 'eats', 'breathes fire on', 'breathes fire on', 'defeats', 'defeats', 'casts out'] },
+            { name: 'Lightning', icon: '⚡', verbs: ['strikes', 'strikes', 'strikes', 'strikes', 'splits', 'strikes', 'melts'] },
+            { name: 'Gun', icon: '🔫', verbs: ['shoots', 'shoots', 'shoots', 'shoots', 'shoots', 'shoots', 'fires at'] }
+        ];
+
+        // Game state
+        let playerScore = 0;
+        let aiScore = 0;
+        let playerMatches = 0;
+        let aiMatches = 0;
+        let playerUnlocked = [0, 8, 2]; // Start with Rock, Paper, Scissors
+        let aiUnlocked = [0, 8, 2];
+        let playerBoard = [];
+        let aiBoard = [];
+        let flippedCards = [];
+        let canFlip = true;
+        let isPlayerTurn = true;
+        let soundEnabled = true;
+        let currentMatchedGesture = null;
+
+        // Audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(frequency, duration, type = 'short') {
+            if (!soundEnabled) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = frequency;
+            oscillator.type = type === 'bell' ? 'sine' : 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playJingleBell() {
+            playSound(659.25, 0.1, 'bell');
+            setTimeout(() => playSound(659.25, 0.1, 'bell'), 100);
+            setTimeout(() => playSound(659.25, 0.2, 'bell'), 200);
+        }
+
+        function playChristmasChord() {
+            playSound(523.25, 0.3);
+            setTimeout(() => playSound(659.25, 0.3), 100);
+            setTimeout(() => playSound(783.99, 0.4), 200);
+        }
+
+        function playWinSound() {
+            playSound(783.99, 0.2);
+            setTimeout(() => playSound(880, 0.2), 100);
+            setTimeout(() => playSound(1046.5, 0.3), 200);
+        }
+
+        function playLoseSound() {
+            playSound(392, 0.2);
+            setTimeout(() => playSound(349.23, 0.2), 100);
+            setTimeout(() => playSound(293.66, 0.3), 200);
+        }
+
+        // Initialize snowfall
+        function createSnowfall() {
+            const snowfall = document.getElementById('snowfall');
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const snowflake = document.createElement('div');
+                    snowflake.className = 'snowflake';
+                    snowflake.textContent = '❄';
+                    snowflake.style.left = Math.random() * 100 + '%';
+                    snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                    snowflake.style.animationDelay = Math.random() * 5 + 's';
+                    snowflake.style.fontSize = (Math.random() * 1 + 0.5) + 'em';
+                    snowfall.appendChild(snowflake);
+
+                    // Remove and recreate snowflake after animation
+                    setTimeout(() => {
+                        snowflake.remove();
+                        createSnowfall();
+                    }, 8000);
+                }, i * 100);
+            }
+        }
+
+        // Initialize game boards
+        function initializeBoards() {
+            // Select 8 random gestures for the game
+            const selectedGestures = [];
+            const availableIndices = [...Array(15).keys()];
+
+            // Ensure starting gestures are included
+            selectedGestures.push(0, 8, 2); // Rock, Paper, Scissors
+            availableIndices.splice(availableIndices.indexOf(0), 1);
+            availableIndices.splice(availableIndices.indexOf(8), 1);
+            availableIndices.splice(availableIndices.indexOf(2), 1);
+
+            // Add 5 more random gestures
+            for (let i = 0; i < 5; i++) {
+                const randomIndex = Math.floor(Math.random() * availableIndices.length);
+                selectedGestures.push(availableIndices[randomIndex]);
+                availableIndices.splice(randomIndex, 1);
+            }
+
+            // Create pairs and shuffle for each board
+            playerBoard = shuffleArray([...selectedGestures, ...selectedGestures]);
+            aiBoard = shuffleArray([...selectedGestures, ...selectedGestures]);
+
+            renderBoard('playerBoard', playerBoard, true);
+            renderBoard('aiBoard', aiBoard, false);
+            updateUnlockedGestures();
+        }
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function renderBoard(boardId, boardData, interactive) {
+            const boardElement = document.getElementById(boardId);
+            boardElement.innerHTML = '';
+
+            boardData.forEach((gestureIndex, cardIndex) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.dataset.index = cardIndex;
+                card.dataset.gesture = gestureIndex;
+
+                if (interactive) {
+                    card.onclick = () => flipCard(cardIndex);
+                }
+
+                boardElement.appendChild(card);
+            });
+        }
+
+        function flipCard(cardIndex) {
+            if (!canFlip || !isPlayerTurn) return;
+
+            const card = document.querySelector(`#playerBoard .memory-card[data-index="${cardIndex}"]`);
+            if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+            if (flippedCards.length >= 2) return;
+
+            card.classList.add('flipped');
+            const gestureIndex = parseInt(card.dataset.gesture);
+            card.textContent = gestures[gestureIndex].icon;
+            flippedCards.push({ cardIndex, gestureIndex });
+
+            playJingleBell();
+
+            if (flippedCards.length === 2) {
+                canFlip = false;
+                setTimeout(checkMatch, 1000);
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            const cards = document.querySelectorAll('#playerBoard .memory-card');
+
+            if (card1.gestureIndex === card2.gestureIndex) {
+                // Match found!
+                cards[card1.cardIndex].classList.add('matched');
+                cards[card2.cardIndex].classList.add('matched');
+
+                playerMatches++;
+                updateStats();
+
+                // Unlock gesture if not already unlocked
+                if (!playerUnlocked.includes(card1.gestureIndex)) {
+                    playerUnlocked.push(card1.gestureIndex);
+                    updateUnlockedGestures();
+                }
+
+                currentMatchedGesture = card1.gestureIndex;
+                playChristmasChord();
+
+                // Start battle
+                setTimeout(() => {
+                    startBattle();
+                }, 800);
+
+            } else {
+                // No match
+                setTimeout(() => {
+                    cards[card1.cardIndex].classList.remove('flipped');
+                    cards[card2.cardIndex].classList.remove('flipped');
+                    cards[card1.cardIndex].textContent = '';
+                    cards[card2.cardIndex].textContent = '';
+
+                    flippedCards = [];
+                    canFlip = true;
+
+                    // AI turn
+                    isPlayerTurn = false;
+                    updateTurnIndicator();
+                    setTimeout(aiTurn, 1000);
+                }, 1000);
+                return;
+            }
+
+            flippedCards = [];
+        }
+
+        function aiTurn() {
+            if (aiMatches >= 8) {
+                endGame();
+                return;
+            }
+
+            // Simple AI: random card flipping with small chance of matching
+            const availableCards = [];
+            const aiCards = document.querySelectorAll('#aiBoard .memory-card');
+
+            aiCards.forEach((card, index) => {
+                if (!card.classList.contains('matched')) {
+                    availableCards.push(index);
+                }
+            });
+
+            if (availableCards.length < 2) {
+                isPlayerTurn = true;
+                updateTurnIndicator();
+                canFlip = true;
+                return;
+            }
+
+            // AI flips two random cards
+            const card1Index = availableCards[Math.floor(Math.random() * availableCards.length)];
+            availableCards.splice(availableCards.indexOf(card1Index), 1);
+            const card2Index = availableCards[Math.floor(Math.random() * availableCards.length)];
+
+            const card1 = aiCards[card1Index];
+            const card2 = aiCards[card2Index];
+
+            // Flip cards
+            setTimeout(() => {
+                card1.classList.add('flipped');
+                card1.textContent = gestures[parseInt(card1.dataset.gesture)].icon;
+                playJingleBell();
+            }, 500);
+
+            setTimeout(() => {
+                card2.classList.add('flipped');
+                card2.textContent = gestures[parseInt(card2.dataset.gesture)].icon;
+                playJingleBell();
+            }, 1000);
+
+            setTimeout(() => {
+                const gesture1 = parseInt(card1.dataset.gesture);
+                const gesture2 = parseInt(card2.dataset.gesture);
+
+                if (gesture1 === gesture2) {
+                    // AI found a match!
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    aiMatches++;
+                    updateStats();
+
+                    if (!aiUnlocked.includes(gesture1)) {
+                        aiUnlocked.push(gesture1);
+                        updateUnlockedGestures();
+                    }
+
+                    currentMatchedGesture = gesture1;
+                    playChristmasChord();
+
+                    // AI battles immediately
+                    setTimeout(() => {
+                        aiBattle();
+                    }, 800);
+
+                } else {
+                    // No match
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    card1.textContent = '';
+                    card2.textContent = '';
+
+                    // Back to player turn
+                    isPlayerTurn = true;
+                    updateTurnIndicator();
+                    canFlip = true;
+                }
+            }, 1500);
+        }
+
+        function aiBattle() {
+            // AI chooses random gesture from unlocked
+            const aiChoice = aiUnlocked[Math.floor(Math.random() * aiUnlocked.length)];
+            const playerChoice = playerUnlocked[Math.floor(Math.random() * playerUnlocked.length)];
+
+            performBattle(playerChoice, aiChoice, false);
+        }
+
+        function startBattle() {
+            // Player chooses gesture
+            const modal = document.getElementById('battleModal');
+            const selector = document.getElementById('gestureSelector');
+            const battlePhase = document.getElementById('battlePhase');
+
+            battlePhase.textContent = '⚔️ Choose Your Gesture for Battle!';
+            selector.innerHTML = '';
+
+            gestures.forEach((gesture, index) => {
+                const btn = document.createElement('div');
+                btn.className = 'gesture-select-btn';
+
+                if (!playerUnlocked.includes(index)) {
+                    btn.classList.add('disabled');
+                }
+
+                btn.innerHTML = `
+                    <div class="gesture-select-icon">${gesture.icon}</div>
+                    <div class="gesture-select-name">${gesture.name}</div>
+                `;
+
+                if (playerUnlocked.includes(index)) {
+                    btn.onclick = () => selectGestureForBattle(index);
+                }
+
+                selector.appendChild(btn);
+            });
+
+            modal.classList.add('active');
+        }
+
+        function selectGestureForBattle(playerChoice) {
+            const aiChoice = aiUnlocked[Math.floor(Math.random() * aiUnlocked.length)];
+            performBattle(playerChoice, aiChoice, true);
+        }
+
+        function performBattle(playerChoice, aiChoice, isPlayerInitiated) {
+            const modal = document.getElementById('battleModal');
+            const selector = document.getElementById('gestureSelector');
+            const choices = document.getElementById('battleChoices');
+            const result = document.getElementById('battleResult');
+            const continueBtn = document.getElementById('battleContinue');
+
+            selector.style.display = 'none';
+            choices.style.display = 'flex';
+
+            document.getElementById('playerBattleIcon').textContent = gestures[playerChoice].icon;
+            document.getElementById('playerBattleName').textContent = gestures[playerChoice].name;
+            document.getElementById('aiBattleIcon').textContent = gestures[aiChoice].icon;
+            document.getElementById('aiBattleName').textContent = gestures[aiChoice].name;
+
+            const battleResult = determineWinner(playerChoice, aiChoice);
+
+            setTimeout(() => {
+                if (battleResult === 'win') {
+                    playerScore += 10;
+                    result.textContent = '🎉 You Win the Battle!';
+                    result.className = 'battle-result win';
+                    const verb = getVerbForGesture(playerChoice, aiChoice);
+                    result.textContent += `\n${gestures[playerChoice].name} ${verb} ${gestures[aiChoice].name}`;
+                    playWinSound();
+                } else if (battleResult === 'lose') {
+                    aiScore += 10;
+                    result.textContent = '😢 AI Wins the Battle!';
+                    result.className = 'battle-result lose';
+                    const verb = getVerbForGesture(aiChoice, playerChoice);
+                    result.textContent += `\n${gestures[aiChoice].name} ${verb} ${gestures[playerChoice].name}`;
+                    playLoseSound();
+                } else {
+                    result.textContent = '🤝 Battle Tie!';
+                    result.className = 'battle-result tie';
+                    playJingleBell();
+                }
+
+                updateStats();
+                continueBtn.style.display = 'block';
+                modal.classList.add('active');
+            }, 500);
+        }
+
+        function closeBattle() {
+            const modal = document.getElementById('battleModal');
+            const selector = document.getElementById('gestureSelector');
+            const choices = document.getElementById('battleChoices');
+            const result = document.getElementById('battleResult');
+            const continueBtn = document.getElementById('battleContinue');
+
+            modal.classList.remove('active');
+            selector.style.display = 'grid';
+            choices.style.display = 'none';
+            result.textContent = '';
+            continueBtn.style.display = 'none';
+
+            // Check win condition
+            if (playerMatches >= 8 || aiMatches >= 8) {
+                endGame();
+                return;
+            }
+
+            // Continue game
+            if (isPlayerTurn) {
+                canFlip = true;
+            } else {
+                setTimeout(aiTurn, 1000);
+            }
+        }
+
+        function determineWinner(playerIndex, computerIndex) {
+            if (playerIndex === computerIndex) {
+                return 'tie';
+            }
+
+            let diff = (computerIndex - playerIndex + 15) % 15;
+
+            if (diff >= 1 && diff <= 7) {
+                return 'win';
+            } else {
+                return 'lose';
+            }
+        }
+
+        function getVerbForGesture(winnerIndex, loserIndex) {
+            let diff = (loserIndex - winnerIndex + 15) % 15;
+            return gestures[winnerIndex].verbs[diff - 1];
+        }
+
+        function updateStats() {
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('aiScore').textContent = aiScore;
+            document.getElementById('playerMatches').textContent = `${playerMatches}/8`;
+            document.getElementById('aiMatches').textContent = `${aiMatches}/8`;
+        }
+
+        function updateUnlockedGestures() {
+            const playerGesturesEl = document.getElementById('playerGestures');
+            const aiGesturesEl = document.getElementById('aiGestures');
+
+            playerGesturesEl.innerHTML = playerUnlocked.map(index => {
+                return `<div class="gesture-badge">${gestures[index].icon} ${gestures[index].name}</div>`;
+            }).join('');
+
+            aiGesturesEl.innerHTML = aiUnlocked.map(index => {
+                return `<div class="gesture-badge">${gestures[index].icon} ${gestures[index].name}</div>`;
+            }).join('');
+        }
+
+        function updateTurnIndicator() {
+            const playerSection = document.getElementById('playerSection');
+            const aiSection = document.getElementById('aiSection');
+
+            if (isPlayerTurn) {
+                playerSection.classList.add('active');
+                aiSection.classList.remove('active');
+            } else {
+                playerSection.classList.remove('active');
+                aiSection.classList.add('active');
+            }
+        }
+
+        function endGame() {
+            const modal = document.getElementById('gameOverModal');
+            const title = document.getElementById('gameOverTitle');
+            const stats = document.getElementById('gameOverStats');
+
+            let winner;
+            if (playerMatches === 8 && aiMatches === 8) {
+                winner = playerScore > aiScore ? 'player' : (aiScore > playerScore ? 'ai' : 'tie');
+            } else if (playerMatches >= 8) {
+                winner = 'player';
+            } else {
+                winner = 'ai';
+            }
+
+            if (winner === 'player') {
+                title.textContent = '🎅 Ho Ho Ho! You Win! 🎄';
+                playChristmasChord();
+                setTimeout(playChristmasChord, 300);
+            } else if (winner === 'ai') {
+                title.textContent = '🤖 AI Wins! Better Luck Next Time! ❄️';
+            } else {
+                title.textContent = '🤝 It\'s a Tie! 🎁';
+            }
+
+            stats.innerHTML = `
+                Your Score: ${playerScore} (${playerMatches} matches)<br>
+                AI Score: ${aiScore} (${aiMatches} matches)
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function newGame() {
+            // Reset game state
+            playerScore = 0;
+            aiScore = 0;
+            playerMatches = 0;
+            aiMatches = 0;
+            playerUnlocked = [0, 8, 2];
+            aiUnlocked = [0, 8, 2];
+            flippedCards = [];
+            canFlip = true;
+            isPlayerTurn = true;
+
+            // Close modals
+            document.getElementById('battleModal').classList.remove('active');
+            document.getElementById('gameOverModal').classList.remove('active');
+
+            // Reinitialize
+            initializeBoards();
+            updateStats();
+            updateTurnIndicator();
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundToggle').textContent = soundEnabled ? 'Sound ON' : 'Sound OFF';
+        }
+
+        // Initialize game
+        createSnowfall();
+        newGame();
+    </script>
+</body>
+</html>
