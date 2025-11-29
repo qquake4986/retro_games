@@ -128,18 +128,24 @@ class Tank {
         this.playerNum = playerNum;
         this.hp = 100;
         this.maxHp = 100;
-        this.rotation = 0;
+        this.rotation = 0; // 탱크 몸체 회전
+        this.turretRotation = 0; // 포탑 회전 (별도)
         this.isMoving = false;
         this.isAI = isAI;
         this.aiChangeDirectionTimer = 0;
         this.aiDirectionChangeInterval = 60;
-        this.aiStrategy = 'hunt'; // 'hunt', 'dodge', 'cover'
+        this.aiStrategy = 'hunt'; // 'hunt', 'dodge', 'strafe'
         this.aiStrategyTimer = 0;
+        this.aiStuckTimer = 0; // 막혔을 때 타이머
+        this.aiLastX = x;
+        this.aiLastY = y;
     }
 
     draw() {
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+        // 탱크 바디는 이동 방향으로 회전
         ctx.rotate(this.rotation);
 
         // 탱크 그림자
@@ -173,6 +179,13 @@ class Tank {
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.strokeRect(-this.width / 2 + 3, -this.height / 2 + 5, this.width - 6, this.height - 10);
+
+        ctx.restore();
+
+        // 포탑은 별도 회전 (마우스/AI 조준 방향)
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(this.turretRotation);
 
         // 탱크 포탑 (더 크고 현실적으로)
         ctx.fillStyle = this.color;
@@ -226,25 +239,34 @@ class Tank {
         let dy = 0;
         this.isMoving = false;
 
+        // 대각선 이동 지원
         if (keys[this.controls.up]) {
             dy = -this.speed;
-            this.rotation = 0;
             this.isMoving = true;
         }
         if (keys[this.controls.down]) {
             dy = this.speed;
-            this.rotation = Math.PI;
             this.isMoving = true;
         }
         if (keys[this.controls.left]) {
             dx = -this.speed;
-            this.rotation = -Math.PI / 2;
             this.isMoving = true;
         }
         if (keys[this.controls.right]) {
             dx = this.speed;
-            this.rotation = Math.PI / 2;
             this.isMoving = true;
+        }
+
+        // 대각선 이동 시 속도 정규화 (√2로 나눔)
+        if (dx !== 0 && dy !== 0) {
+            const diagonal = Math.sqrt(2);
+            dx /= diagonal;
+            dy /= diagonal;
+        }
+
+        // 이동 방향으로 탱크 바디 회전
+        if (dx !== 0 || dy !== 0) {
+            this.rotation = Math.atan2(dy, dx) + Math.PI / 2;
         }
 
         // 새 위치 계산
@@ -289,6 +311,22 @@ class Tank {
             this.aiStrategy = strategies[Math.floor(Math.random() * strategies.length)];
         }
 
+        // 막혔는지 감지 (3프레임 동안 위치 변화 없음)
+        const moved = Math.abs(this.x - this.aiLastX) > 0.1 || Math.abs(this.y - this.aiLastY) > 0.1;
+        if (!moved) {
+            this.aiStuckTimer++;
+            if (this.aiStuckTimer > 3) {
+                // 막혔으면 90도 회전해서 다른 방향으로
+                this.aiStrategy = 'dodge';
+                this.aiStrategyTimer = 0;
+                this.aiStuckTimer = 0;
+            }
+        } else {
+            this.aiStuckTimer = 0;
+        }
+        this.aiLastX = this.x;
+        this.aiLastY = this.y;
+
         let dx = 0;
         let dy = 0;
         this.isMoving = false;
@@ -297,39 +335,21 @@ class Tank {
         const distY = target.y - this.y;
         const distance = Math.sqrt(distX * distX + distY * distY);
 
-        // 적을 향해 포탑 회전
-        const angleToTarget = Math.atan2(distY, distX);
+        // 적을 향해 포탑 회전 (항상)
+        this.turretRotation = Math.atan2(distY, distX);
 
         // 전략에 따른 이동
         if (this.aiStrategy === 'hunt') {
-            // 적에게 접근하면서 조준
+            // 적에게 접근
             if (distance > 200) {
-                // 가까이 접근
-                if (Math.abs(distX) > Math.abs(distY)) {
-                    if (distX > 0) {
-                        dx = this.speed;
-                        this.rotation = Math.PI / 2;
-                    } else {
-                        dx = -this.speed;
-                        this.rotation = -Math.PI / 2;
-                    }
-                } else {
-                    if (distY > 0) {
-                        dy = this.speed;
-                        this.rotation = Math.PI;
-                    } else {
-                        dy = -this.speed;
-                        this.rotation = 0;
-                    }
-                }
-            } else {
-                // 적당한 거리에서 조준
-                this.rotation = angleToTarget;
+                // 직선으로 접근 (대각선 포함)
+                dx = (distX / distance) * this.speed;
+                dy = (distY / distance) * this.speed;
             }
             this.isMoving = distance > 200;
         } else if (this.aiStrategy === 'dodge') {
             // 좌우로 회피하면서 이동
-            const perpAngle = angleToTarget + Math.PI / 2;
+            const perpAngle = Math.atan2(distY, distX) + Math.PI / 2;
             if (Math.random() > 0.5) {
                 dx = Math.cos(perpAngle) * this.speed;
                 dy = Math.sin(perpAngle) * this.speed;
@@ -337,43 +357,59 @@ class Tank {
                 dx = Math.cos(perpAngle - Math.PI) * this.speed;
                 dy = Math.sin(perpAngle - Math.PI) * this.speed;
             }
-
-            // 이동 방향으로 회전
-            if (Math.abs(dx) > Math.abs(dy)) {
-                this.rotation = dx > 0 ? Math.PI / 2 : -Math.PI / 2;
-            } else {
-                this.rotation = dy > 0 ? Math.PI : 0;
-            }
             this.isMoving = true;
         } else if (this.aiStrategy === 'strafe') {
             // 원을 그리며 이동
-            const circleAngle = angleToTarget + Math.PI / 2;
+            const circleAngle = Math.atan2(distY, distX) + Math.PI / 2;
             dx = Math.cos(circleAngle) * this.speed;
             dy = Math.sin(circleAngle) * this.speed;
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                this.rotation = dx > 0 ? Math.PI / 2 : -Math.PI / 2;
-            } else {
-                this.rotation = dy > 0 ? Math.PI : 0;
-            }
             this.isMoving = true;
+        }
+
+        // 이동 방향으로 탱크 바디 회전
+        if (dx !== 0 || dy !== 0) {
+            this.rotation = Math.atan2(dy, dx) + Math.PI / 2;
         }
 
         // 새 위치 계산
         const newX = this.x + dx;
         const newY = this.y + dy;
 
-        // 경계 체크
-        if (newX < 0 || newX > canvas.width - this.width) return;
-        if (newY < 0 || newY > canvas.height - this.height) return;
+        // 경계 체크 - 막히면 다른 방향으로
+        if (newX < 0 || newX > canvas.width - this.width ||
+            newY < 0 || newY > canvas.height - this.height) {
+            this.aiStrategy = 'dodge';
+            this.aiStrategyTimer = 0;
+            return;
+        }
 
         // 장애물 충돌 체크
         const tempTank = { x: newX, y: newY, width: this.width, height: this.height };
         for (let obstacle of obstacles) {
             if (obstacle.checkCollision(tempTank)) {
-                // 충돌 시 전략 변경
-                this.aiStrategy = 'dodge';
-                this.aiStrategyTimer = 0;
+                // 충돌 시 우회 시도 - 좌우 중 하나로 이동
+                const avoidAngle = Math.atan2(dy, dx) + (Math.random() > 0.5 ? Math.PI / 2 : -Math.PI / 2);
+                const avoidX = this.x + Math.cos(avoidAngle) * this.speed;
+                const avoidY = this.y + Math.sin(avoidAngle) * this.speed;
+
+                const avoidTank = { x: avoidX, y: avoidY, width: this.width, height: this.height };
+                let canAvoid = true;
+
+                // 우회 경로도 막혔는지 확인
+                for (let obs of obstacles) {
+                    if (obs.checkCollision(avoidTank)) {
+                        canAvoid = false;
+                        break;
+                    }
+                }
+
+                if (canAvoid && avoidX >= 0 && avoidX <= canvas.width - this.width &&
+                    avoidY >= 0 && avoidY <= canvas.height - this.height) {
+                    // 우회 가능하면 우회
+                    this.x = avoidX;
+                    this.y = avoidY;
+                    this.rotation = Math.atan2(Math.sin(avoidAngle), Math.cos(avoidAngle)) + Math.PI / 2;
+                }
                 return;
             }
         }
@@ -469,6 +505,21 @@ document.addEventListener('keyup', (e) => {
     keys[e.key] = false;
 });
 
+// 마우스 위치 추적
+let mouseX = canvas.width / 2;
+let mouseY = canvas.height / 2;
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    // 플레이어 포탑을 마우스 방향으로 회전
+    const dx = mouseX - (player1.x + player1.width / 2);
+    const dy = mouseY - (player1.y + player1.height / 2);
+    player1.turretRotation = Math.atan2(dy, dx);
+});
+
 // 대포 발사 함수
 function shootBullet(tank) {
     const currentTime = Date.now();
@@ -480,7 +531,7 @@ function shootBullet(tank) {
         // 탱크 중앙에서 포탑 방향으로 대포 생성
         const bulletX = tank.x + tank.width / 2;
         const bulletY = tank.y + tank.height / 2;
-        const bullet = new Bullet(bulletX, bulletY, tank.rotation, tank.playerNum);
+        const bullet = new Bullet(bulletX, bulletY, tank.turretRotation, tank.playerNum);
         bullets.push(bullet);
     }
 }
@@ -640,11 +691,13 @@ function resetTanksToStart() {
     player1.x = 100;
     player1.y = canvas.height / 2 - 20;
     player1.rotation = 0;
+    player1.turretRotation = 0;
 
     // AI를 원래 시작 위치로 리셋
     player2.x = canvas.width - 140;
     player2.y = canvas.height / 2 - 20;
     player2.rotation = 0;
+    player2.turretRotation = Math.PI; // AI는 왼쪽 방향
 }
 
 // UI 업데이트
